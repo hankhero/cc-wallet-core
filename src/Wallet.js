@@ -244,6 +244,20 @@ Wallet.prototype.getUnconfirmedBalance = function(assdef, cb) {
 }
 
 /**
+ * @callback Wallet~sendCoins
+ */
+
+/**
+ * @param {AssetDefinition} assdef
+ * @param {Array} data Array of Objects { targetAddr: string, value: number }
+ * @param {Wallet~sendCoins} cb
+ */
+Wallet.prototype.sendCoins = function(assdef, data, cb) {
+  var tx = new AssetTx() // Todo
+  
+}
+
+/**
  * Drop all data from storage's
  */
 Wallet.prototype.clearStorage = function() {

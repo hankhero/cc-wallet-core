@@ -3,7 +3,6 @@ var expect = require('chai').expect
 var cclib = require('coloredcoinjs-lib')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
-var ColorSet = require('../src/asset/ColorSet')
 var storage = require('../src/storage')
 
 
@@ -44,7 +43,7 @@ describe('asset.AssetDefinition', function() {
   })
 
   it('getColorSet', function() {
-    expect(assdef.getColorSet()).to.be.instanceof(ColorSet)
+    expect(assdef.getColorSet()).to.be.instanceof(cclib.color.ColorSet)
   })
 
   describe('parseValue', function() {

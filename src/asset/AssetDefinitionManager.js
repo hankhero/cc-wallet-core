@@ -79,5 +79,10 @@ AssetDefinitionManager.prototype.getAllAssets = function() {
   return assdefs
 }
 
+/**
+ *
+ */
+AssetDefinitionManager.prototype.getAssetAndAddress = function() {}
+
 
 module.exports = AssetDefinitionManager

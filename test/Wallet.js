@@ -82,13 +82,13 @@ describe('Wallet', function() {
     })
 
     it('_selectChain return Error', function() {
-      bitcoin.getColorSet().colorSchemeSet = ['this bad way']
+      bitcoin.getColorSet().colorSchemes = ['this bad way']
       var chain = wallet._selectChain(bitcoin)
       expect(chain).to.be.instanceof(Error)
     })
 
     it('getNewAddress return error', function() {
-      bitcoin.getColorSet().colorSchemeSet = ['this bad way']
+      bitcoin.getColorSet().colorSchemes = ['this bad way']
       var newAddress = wallet.getNewAddress(bitcoin)
       expect(newAddress).to.be.instanceof(Error)
     })
@@ -99,7 +99,7 @@ describe('Wallet', function() {
     })
 
     it('getSomeAddress return error', function() {
-      bitcoin.getColorSet().colorSchemeSet = ['this bad way']
+      bitcoin.getColorSet().colorSchemes = ['this bad way']
       var someAddress = wallet.getSomeAddress(bitcoin)
       expect(someAddress).to.be.instanceof(Error)
     })
@@ -110,7 +110,7 @@ describe('Wallet', function() {
     })
 
     it('getAllAddresses return error', function() {
-      bitcoin.getColorSet().colorSchemeSet = ['this bad way']
+      bitcoin.getColorSet().colorSchemes = ['this bad way']
       var addresses = wallet.getAllAddresses(bitcoin)
       expect(addresses).to.be.instanceof(Error)
     })

@@ -1,9 +1,7 @@
 var assert = require('assert')
 
 var _ = require('lodash')
-var ColorDefinitionManager = require('coloredcoinjs-lib').color.ColorDefinitionManager
-
-var ColorSet = require('./ColorSet')
+var cclib = require('coloredcoinjs-lib')
 
 
 /**
@@ -16,7 +14,7 @@ var ColorSet = require('./ColorSet')
  * @param {number} [data.unit=1] Power of 10 and greater than 0
  */
 function AssetDefinition(colorDefinitionManager, data) {
-  assert(colorDefinitionManager instanceof ColorDefinitionManager,
+  assert(colorDefinitionManager instanceof cclib.color.ColorDefinitionManager,
     'Expected ColorDefinitionManager colorDefinitionManager, got ' + colorDefinitionManager)
 
   assert(_.isObject(data), 'Expected Object data, got ' + data)
@@ -37,10 +35,7 @@ function AssetDefinition(colorDefinitionManager, data) {
   assert(data.colorSet.length === 1, 'Currently only single-color assets are supported')
 
   this.monikers = data.monikers
-  this.colorSet = new ColorSet({
-    colorDefinitionManager: colorDefinitionManager,
-    colorSchemeSet: data.colorSet
-  })
+  this.colorSet = new cclib.color.ColorSet(colorDefinitionManager, data.colorSet)
   this.unit = data.unit
 }
 
@@ -48,6 +43,7 @@ function AssetDefinition(colorDefinitionManager, data) {
  * @return {Object}
  */
 AssetDefinition.prototype.getData = function() {
+  // Todo: replace to colorSet.getColorSchemes
   return {
     monikers: this.monikers,
     colorSet: this.colorSet.getData(),

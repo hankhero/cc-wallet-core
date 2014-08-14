@@ -4,7 +4,6 @@ var cclib = require('coloredcoinjs-lib')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
 var AssetDefinitionManager = require('../src/asset').AssetDefinitionManager
-var ColorSet = require('../src/asset/ColorSet')
 var storage = require('../src/storage')
 
 
