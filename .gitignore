@@ -1,0 +1,6 @@
+coverage
+node_modules
+
+cc-wallet-core.js
+cc-wallet-core.min.js
+cc-wallet-core.test.js

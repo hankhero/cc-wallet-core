@@ -1,0 +1,35 @@
+{
+  "name": "cc-wallet-core",
+  "version": "0.0.1",
+  "description": "",
+  "main": "./src/index.js",
+  "keywords": [],
+  "contributors": [
+    {
+      "name": "Fomichev Kirill",
+      "email": "fanatid@ya.ru"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fanatid/cc-wallet-core"
+  },
+  "dependencies": {
+    "bitcoinjs-lib": "1.0.2",
+    "bs58": "1.2.1",
+    "coloredcoinjs-lib": "git://github.com/fanatid/coloredcoinjs-lib.git",
+    "lodash": "2.4.1"
+  },
+  "devDependencies": {
+    "chai": "1.9.1",
+    "coveralls": "2.11.1",
+    "grunt": "0.4.5",
+    "grunt-browserify": "2.1.4",
+    "grunt-contrib-clean": "0.6.0",
+    "grunt-contrib-jshint": "0.10.0",
+    "grunt-contrib-uglify": "0.5.1",
+    "grunt-contrib-watch": "0.6.1",
+    "grunt-mocha-istanbul": "1.5.0",
+    "mocha": "1.21.4"
+  }
+}
