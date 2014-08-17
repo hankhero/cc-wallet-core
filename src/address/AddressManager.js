@@ -1,6 +1,7 @@
 var assert = require('assert')
-var _ = require('lodash')
 
+var _ = require('lodash')
+var LRU = require('lru-cache')
 var bitcoin = require('bitcoinjs-lib')
 var ECPubKey = bitcoin.ECPubKey
 var HDNode = bitcoin.HDNode
@@ -60,6 +61,8 @@ function AddressManager(amStorage) {
 
   this.UNCOLORED_CHAIN = 0
   this.EPOBC_CHAIN = 826130763
+
+  this.privKeyCache = LRU()
 }
 
 /**
@@ -184,6 +187,32 @@ AddressManager.prototype.getAllAddresses = function(params) {
   }
 
   return this.amStorage.getAllPubKeys({ account: params.account, chain: params.chain }).map(record2address)
+}
+
+/**
+ * @param {string} address
+ * @return {bitcoinjs-lib.ECKey}
+ * @throws {Error} If address not found
+ */
+AddressManager.prototype.getPrivKeyByAddress = function(address) {
+  var privKey = this.privKeyCache.get(address)
+  if (!_.isUndefined(privKey))
+    return privKey
+
+  var masterKey = this.getMasterKey()
+
+  var network = HDNode.fromBase58(masterKey).network
+
+  var record = this.amStorage.getAllPubKeys().filter(function(record) {
+    var recordAddress = new Address({ pubKey: ECPubKey.fromHex(record.pubKey), network: network })
+    return recordAddress.getAddress() === address
+  })
+
+  if (record.length === 0)
+    throw new Error('address not found')
+
+  var node = derive(HDNode.fromBase58(masterKey), record[0].account, record[0].chain, record[0].index)
+  return node.privKey
 }
 
 

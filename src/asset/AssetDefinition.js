@@ -59,6 +59,7 @@ AssetDefinition.prototype.getId = function() {
 }
 
 /**
+ * @deprecated Not need, getId enough
  * @return {Array}
  */
 AssetDefinition.prototype.getIds = function() {

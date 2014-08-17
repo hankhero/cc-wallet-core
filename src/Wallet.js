@@ -1,12 +1,13 @@
 var assert = require('assert')
 
 var _ = require('lodash')
+var Q = require('q')
 var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
 
 var AddressManager = require('./address').AddressManager
-var AssetDefinition = require('./asset').AssetDefinition
-var AssetDefinitionManager = require('./asset').AssetDefinitionManager
+var asset = require('./asset')
+var tx = require('./tx')
 var storage = require('./storage')
 
 
@@ -41,12 +42,13 @@ function Wallet(data) {
   this.cdManager = new cclib.color.ColorDefinitionManager(this.cdStorage)
 
   this.adStorage = new storage.AssetDefinitionStorage()
-  this.adManager = new AssetDefinitionManager(this.cdManager, this.adStorage)
+  this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
 
-  this.adManager.getAllAssets().forEach(function(assdef) {
-    this.getSomeAddress(assdef)
+  this.adManager.getAllAssets().forEach(function(assetdef) {
+    this.getSomeAddress(assetdef)
   }.bind(this))
 
+  this.txTransformer = new tx.TxTransformer()
 }
 
 /**
@@ -57,12 +59,12 @@ function Wallet(data) {
  * @return {Error|null}
  */
 Wallet.prototype.addAssetDefinition = function(data) {
-  var assdef = this.adManager.createAssetDefinition(data)
+  var assetdef = this.adManager.createAssetDefinition(data)
 
-  if (!(assdef instanceof Error))
-    this.getSomeAddress(assdef)
+  if (!(assetdef instanceof Error))
+    this.getSomeAddress(assetdef)
 
-  return assdef
+  return assetdef
 }
 
 /**
@@ -83,18 +85,19 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 /**
  * Return chain number for address actions
  *
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @return {number|Error}
  */
-Wallet.prototype._selectChain = function(assdef) {
-  assert(assdef instanceof AssetDefinition, 'Expected AssetDefinition assdef, got ' + assdef)
+Wallet.prototype._selectChain = function(assetdef) {
+  assert(assetdef instanceof asset.AssetDefinition,
+    'Expected AssetDefinition assetdef, got ' + assetdef)
 
   var chain
 
-  if (assdef.getColorSet().isUncoloredOnly()) {
+  if (assetdef.getColorSet().isUncoloredOnly()) {
     chain = this.aManager.UNCOLORED_CHAIN
 
-  } else if (assdef.getColorSet().isEPOBCOnly()) {
+  } else if (assetdef.getColorSet().isEPOBCOnly()) {
     chain = this.aManager.EPOBC_CHAIN
 
   } else {
@@ -108,11 +111,11 @@ Wallet.prototype._selectChain = function(assdef) {
 /**
  * Create new address for given asset
  *
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @return {string|Error}
  */
-Wallet.prototype.getNewAddress = function(assdef) {
-  var chain = this._selectChain(assdef)
+Wallet.prototype.getNewAddress = function(assetdef) {
+  var chain = this._selectChain(assetdef)
   if (chain instanceof Error)
     return chain
 
@@ -122,11 +125,11 @@ Wallet.prototype.getNewAddress = function(assdef) {
 /**
  * Return first address for given asset or create if not exist
  *
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @return {string|Error}
  */
-Wallet.prototype.getSomeAddress = function(assdef) {
-  var chain = this._selectChain(assdef)
+Wallet.prototype.getSomeAddress = function(assetdef) {
+  var chain = this._selectChain(assetdef)
   if (chain instanceof Error)
     return chain
 
@@ -136,11 +139,11 @@ Wallet.prototype.getSomeAddress = function(assdef) {
 /**
  * Return all addresses for given asset
  *
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @return {string|Error}
  */
-Wallet.prototype.getAllAddresses = function(assdef) {
-  var chain = this._selectChain(assdef)
+Wallet.prototype.getAllAddresses = function(assetdef) {
+  var chain = this._selectChain(assetdef)
   if (chain instanceof Error)
     return chain
 
@@ -153,7 +156,7 @@ Wallet.prototype.getAllAddresses = function(assdef) {
  *
  * @return {CoinQuery}
  */
-Wallet.prototype._getCoinQuery = function() {
+Wallet.prototype.getCoinQuery = function() {
   var addresses = []
   addresses = addresses.concat(this.aManager.getAllAddresses({ account: 0, chain: this.aManager.UNCOLORED_CHAIN }))
   addresses = addresses.concat(this.aManager.getAllAddresses({ account: 0, chain: this.aManager.EPOBC_CHAIN }))
@@ -168,14 +171,15 @@ Wallet.prototype._getCoinQuery = function() {
 }
 
 /**
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @param {Object} opts
  * @param {boolean} [opts.onlyConfirmed=false]
  * @param {boolean} [opts.onlyUnconfirmed=false]
  * @param {function} cb
  */
-Wallet.prototype._getBalance = function(assdef, opts, cb) {
-  assert(assdef instanceof AssetDefinition, 'Expected AssetDefinition assdef, got ' + assdef)
+Wallet.prototype._getBalance = function(assetdef, opts, cb) {
+  assert(assetdef instanceof asset.AssetDefinition,
+    'Expected AssetDefinition assetdef, got ' + assetdef)
   assert(_.isObject(opts), 'Expected Object opts, got ' + opts)
   opts = _.extend({
     onlyConfirmed: false,
@@ -186,10 +190,10 @@ Wallet.prototype._getBalance = function(assdef, opts, cb) {
   assert(!opts.onlyConfirmed || !opts.onlyUnconfirmed, 'opts.onlyConfirmed and opts.onlyUnconfirmed both is true')
   assert(_.isFunction(cb), 'Expected function cb, got ' + cb)
 
-  var colors = assdef.getColorSet().getColorIds().map(function(colorId) {
+  var colors = assetdef.getColorSet().getColorIds().map(function(colorId) {
     return this.cdManager.getByColorId({ colorId: colorId })
   }.bind(this))
-  var coinQuery = this._getCoinQuery().onlyColoredAs(colors)
+  var coinQuery = this.getCoinQuery().onlyColoredAs(colors)
   if (opts.onlyConfirmed)
     coinQuery = coinQuery.getConfirmed()
   if (opts.onlyUnconfirmed)
@@ -220,41 +224,70 @@ Wallet.prototype._getBalance = function(assdef, opts, cb) {
 }
 
 /**
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @param {function} cb
  */
-Wallet.prototype.getAvailableBalance = function(assdef, cb) {
-  this._getBalance(assdef, { 'onlyConfirmed': true }, cb)
+Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
+  this._getBalance(assetdef, { 'onlyConfirmed': true }, cb)
 }
 
 /**
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @param {function} cb
  */
-Wallet.prototype.getTotalBalance = function(assdef, cb) {
-  this._getBalance(assdef, {}, cb)
+Wallet.prototype.getTotalBalance = function(assetdef, cb) {
+  this._getBalance(assetdef, {}, cb)
 }
 
 /**
- * @param {AssetDefinition} assdef
+ * @param {AssetDefinition} assetdef
  * @param {function} cb
  */
-Wallet.prototype.getUnconfirmedBalance = function(assdef, cb) {
-  this._getBalance(assdef, { 'onlyUnconfirmed': true }, cb)
+Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
+  this._getBalance(assetdef, { 'onlyUnconfirmed': true }, cb)
 }
+
+/**
+ * @typedef {Object} rawTarget
+ * @property {string} address Target address
+ * @property {number} value Target value in satoshi
+ */
 
 /**
  * @callback Wallet~sendCoins
+ * @param {?Error} error
+ * @param {string} txId
  */
 
 /**
- * @param {AssetDefinition} assdef
- * @param {Array} data Array of Objects { targetAddr: string, value: number }
+ * @param {AssetDefinition} assetdef
+ * @param {rawTarget[]} rawTargets
  * @param {Wallet~sendCoins} cb
  */
-Wallet.prototype.sendCoins = function(assdef, data, cb) {
-  var tx = new AssetTx() // Todo
-  
+Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
+  var self = this
+
+  Q.fcall(function() {
+    var assetTargets = rawTargets.map(function(target) {
+      var assetValue = new asset.AssetValue(assetdef, target.value)
+      return new asset.AssetTarget(target.address, assetValue)
+    })
+
+    var assetTx = new tx.AssetTx(self)
+    assetTx.addTargets(assetTargets)
+
+    return Q.ninvoke(self.txTransformer, 'transformTx', assetTx, 'signed')
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+
+  }).then(function(txId) {
+    cb(null, txId)
+
+  }).fail(function(error) {
+    cb(error)
+
+  }).done()
 }
 
 /**

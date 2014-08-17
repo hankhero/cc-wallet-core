@@ -17,7 +17,9 @@
   "dependencies": {
     "bitcoinjs-lib": "1.0.2",
     "coloredcoinjs-lib": "git://github.com/fanatid/coloredcoinjs-lib.git",
-    "lodash": "2.4.1"
+    "lodash": "2.4.1",
+    "lru-cache": "2.5.0",
+    "q": "1.0.1"
   },
   "devDependencies": {
     "chai": "1.9.1",

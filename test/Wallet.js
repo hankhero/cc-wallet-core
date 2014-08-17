@@ -20,7 +20,23 @@ describe('Wallet', function() {
   })
 
   it('_getCoinQuery return CoinQuery instance', function() {
-    expect(wallet._getCoinQuery()).to.be.instanceof(cclib.coin.CoinQuery)
+    expect(wallet.getCoinQuery()).to.be.instanceof(cclib.coin.CoinQuery)
+  })
+
+  it('sendCoins', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
+
+    var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+    var address = wallet.getSomeAddress(bitcoin)
+    //console.log('Address from: ' + address)
+    //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
+    var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+    wallet.sendCoins(bitcoin, targets, function(error, txId) {
+      //console.log(error, txId)
+      expect(error).to.be.null
+      expect(txId).to.be.an('string').with.to.have.length(64)
+      done()
+    })
   })
 
   describe('asset methods', function() {

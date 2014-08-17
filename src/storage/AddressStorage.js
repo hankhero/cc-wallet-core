@@ -97,21 +97,30 @@ AddressStorage.prototype.addPubKey = function(data) {
  * Get all pubKeys for account and chain
  *
  * @param {Object} data
- * @param {number} data.account
- * @param {number} data.chain
+ * @param {number} [data.account]
+ * @param {number} [data.chain]
  * @return {Array}
  */
 AddressStorage.prototype.getAllPubKeys = function(data) {
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(_.isNumber(data.account), 'Expected number data.account, got ' + data.account)
-  assert(_.isNumber(data.chain), 'Expected number data.chain, got ' + data.chain)
-
-  var pubKeys = this.store.get(this.pubKeysDBKey) || []
+  data = _.isUndefined(data) ? {} : data
+  //assert(_.isObject(data), 'Expected Object data, got ' + data)
+  //assert(_.isNumber(data.account), 'Expected number data.account, got ' + data.account)
+  //assert(_.isNumber(data.chain), 'Expected number data.chain, got ' + data.chain)
 
   function isGoodRecord(record) {
-    return (record.account === data.account && record.chain === data.chain)
+    if (!_.isUndefined(data.account) && !_.isUndefined(data.chain))
+      return (record.account === data.account && record.chain === data.chain)
+
+    if (!_.isUndefined(data.account))
+      return (record.account === data.account)
+
+    if (!_.isUndefined(data.chain))
+      return (record.chain === data.chain)
+
+    return true
   }
 
+  var pubKeys = this.store.get(this.pubKeysDBKey) || []
   return pubKeys.filter(isGoodRecord)
 }
 
