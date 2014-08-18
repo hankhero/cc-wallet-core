@@ -39,6 +39,29 @@ describe('Wallet', function() {
     })
   })
 
+  it('sendCoins epobc', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
+
+    var data = {
+      monikers: ['gold'],
+      colorSet: ['epobc:73560ffd916267a70a1233eb63d5d97e79e7eac981a52860df1ac38d2568b3a5:0:274664'],
+      unit: 10000
+    }
+    var assetdef = wallet.addAssetDefinition(data)
+    var address = wallet.getSomeAddress(assetdef)
+    //console.log('Address from: ' + address)
+    //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
+    var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+    //wallet.getAvailableBalance(assetdef, function(error, balance) {
+      //console.log(error, balance, assetdef.formatValue(balance))
+    wallet.sendCoins(assetdef, targets, function(error, txId) {
+      //console.log(error, txId)
+      expect(error).to.be.null
+      expect(txId).to.be.an('string').with.to.have.length(64)
+      done()
+    })
+  })
+
   describe('asset methods', function() {
     it('addAssetDefinition return error', function() {
       var result = wallet.addAssetDefinition({

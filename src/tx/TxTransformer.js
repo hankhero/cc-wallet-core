@@ -105,7 +105,7 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
     if (!operationalTx.isMonoColor())
       throw new Error('multi color operationalTx not supported')
 
-    var composer = operationalTx.getTargets()[0].getColorDefinition().constructor.makeComposeTx
+    var composer = operationalTx.getTargets()[0].getColorDefinition().constructor.makeComposedTx
     if (_.isUndefined(composer))
       throw new Error('composer not found')
 
@@ -146,7 +146,7 @@ TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb
 
     var tx = new bitcoin.Transaction()
     composedTx.getTxIns().forEach(function(txIn) {
-      tx.addInput(txIn.txId, txIn.outIndex)
+      tx.addInput(txIn.txId, txIn.outIndex, txIn.sequence)
     })
     composedTx.getTxOuts().forEach(function(txOut) {
       tx.addOutput(txOut.address, txOut.value)

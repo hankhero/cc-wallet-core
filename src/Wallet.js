@@ -89,6 +89,16 @@ Wallet.prototype.getAllAssetDefinitions = function() {
  * @return {number|Error}
  */
 Wallet.prototype._selectChain = function(assetdef) {
+  // Todo: add to doc, health it's durty code
+
+  if (assetdef instanceof cclib.color.ColorDefinition) {
+    var scheme = assetdef.getScheme()
+    if (scheme === '')
+      return this.aManager.UNCOLORED_CHAIN
+    if (scheme.indexOf('epobc') === 0)
+      return this.aManager.EPOBC_CHAIN
+  }
+
   assert(assetdef instanceof asset.AssetDefinition,
     'Expected AssetDefinition assetdef, got ' + assetdef)
 
