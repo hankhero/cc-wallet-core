@@ -7,43 +7,40 @@ var storage = require('../src/storage')
 
 
 describe('asset.AssetDefinition', function() {
-  var cdStorage, cdManager, assdef
+  var cdStorage, cdManager, assetdef
   var bitcoinData = {
     monikers: ['bitcoin'],
-    colorSet: [''],
+    colorSchemes: [''],
     unit: 100000000
   }
 
   beforeEach(function() {
     cdStorage = new cclib.storage.ColorDefinitionStorage()
     cdManager = new cclib.color.ColorDefinitionManager(cdStorage)
-    assdef = new AssetDefinition(cdManager, bitcoinData)
+    assetdef = new AssetDefinition(cdManager, bitcoinData)
     cdStorage.clear()
   })
 
-  it('constructor return error', function() {
-    assdef = new AssetDefinition(cdManager, {
+  it('constructor throw error', function() {
+    var data = {
       monikers: ['bitcoin'],
-      colorSet: [''],
+      colorSchemes: [''],
       unit: 2
-    })
-    expect(assdef).to.be.instanceof(Error)
+    }
+    var fn = function() { new AssetDefinition(cdManager, data) }
+    expect(fn).to.throw(Error)
   })
 
   it('getId', function() {
-    expect(assdef.getId()).to.equal('JNu4AFCBNmTE1')
-  })
-
-  it('getIds', function() {
-    expect(assdef.getIds()).to.deep.equal(['JNu4AFCBNmTE1'])
+    expect(assetdef.getId()).to.equal('JNu4AFCBNmTE1')
   })
 
   it('getMonikers', function() {
-    expect(assdef.getMonikers()).to.deep.equal(['bitcoin'])
+    expect(assetdef.getMonikers()).to.deep.equal(['bitcoin'])
   })
 
   it('getColorSet', function() {
-    expect(assdef.getColorSet()).to.be.instanceof(cclib.color.ColorSet)
+    expect(assetdef.getColorSet()).to.be.instanceof(cclib.color.ColorSet)
   })
 
   describe('parseValue', function() {
@@ -59,7 +56,7 @@ describe('asset.AssetDefinition', function() {
 
     fixtures.forEach(function(fixture) {
       it(fixture.description, function() {
-        expect(assdef.parseValue(fixture.value)).to.deep.equal(fixture.expect)
+        expect(assetdef.parseValue(fixture.value)).to.deep.equal(fixture.expect)
       })
     })
   })
@@ -76,15 +73,15 @@ describe('asset.AssetDefinition', function() {
 
     fixtures.forEach(function(fixture) {
       it(fixture.description, function() {
-        expect(assdef.formatValue(fixture.value)).to.deep.equal(fixture.expect)
+        expect(assetdef.formatValue(fixture.value)).to.deep.equal(fixture.expect)
       })
     })
   })
 
   it('getData', function() {
-    expect(assdef.getData()).to.deep.equal({
+    expect(assetdef.getData()).to.deep.equal({
       monikers: ['bitcoin'],
-      colorSet: [''],
+      colorSchemes: [''],
       unit: 100000000
     })
   })

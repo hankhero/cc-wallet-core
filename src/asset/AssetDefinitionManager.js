@@ -14,52 +14,47 @@ var AssetDefinitionStorage = require('../storage').AssetDefinitionStorage
  * @param {AssetDefinitionStorage} adStorage
  */
 function AssetDefinitionManager(cdManager, adStorage) {
-  assert(cdManager instanceof ColorDefinitionManager,
-    'Expected ColorDefinitionManager cdManager, got ' + cdManager)
-  assert(adStorage instanceof AssetDefinitionStorage,
-    'Expected AssetDefinitionStorage adStorage, got ' + adStorage)
-
   this.cdManager = cdManager
   this.adStorage = adStorage
 
-  if (this.adStorage.getByMoniker('bitcoin') === null)
+  if (this.adStorage.getByMoniker('bitcoin') === null) {
+    var uncoloredColorDefinition = cdManager.getUncolored()
+
     this.createAssetDefinition({
       monikers: ['bitcoin'],
-      colorSet: [''],
+      colorSchemes: [uncoloredColorDefinition.getScheme()],
       unit: 100000000
     })
+  }
 }
 
 /**
- * Create new AssetDefinition and return it or Error
- *
  * @param {Object} data
- * @param {Array} data.monikers Asset names
- * @param {Array} data.colorSet Asset colors
- * @param {number} [data.unit=1] Asset unit
- * @return {AssetDefinition|Error}
+ * @param {string[]} data.monikers
+ * @param {string[]} data.colorSchemes
+ * @param {number} [data.unit=1]
+ * @return {AssetDefinition}
+ * @throws {Error} If data.id or monikers in data.monikers exists
  */
 AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
-  // asserts for data in AssetDefinition
-  var assdef = new AssetDefinition(this.cdManager, data)
+  var assetdef = new AssetDefinition(this.cdManager, data)
 
-  var error = this.adStorage.add({
-    ids: assdef.getIds(),
-    monikers: assdef.getData().monikers,
-    colorSet: assdef.getData().colorSet,
-    unit: assdef.getData().unit
+  this.adStorage.add({
+    id: assetdef.getId(),
+    monikers: assetdef.getMonikers(),
+    colorSchemes: assetdef.getColorSet().getColorSchemes(),
+    colorIds: assetdef.getColorSet().getColorIds(),
+    unit: assetdef.getData().unit
   })
 
-  return (error === null ? assdef : error)
+  return assetdef
 }
 
 /**
  * @param {string} moniker
- * @return {AssetDefinition|null}
+ * @return {?AssetDefinition}
  */
 AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
-  assert(_.isString(moniker), 'Expected string moniker, got ' + moniker)
-
   var result = this.adStorage.getByMoniker(moniker)
 
   if (result !== null)
@@ -69,14 +64,27 @@ AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
 }
 
 /**
- * @return {Array}
+ * @param {number} colorId
+ * @return {?AssetDefinition}
+ */
+AssetDefinitionManager.prototype.getByColorId = function(colorId) {
+  var result = this.adStorage.getByColorId(colorId)
+
+  if (result !== null)
+    result = new AssetDefinition(this.cdManager, result)
+
+  return result
+}
+
+/**
+ * @return {AssetDefinition[]}
  */
 AssetDefinitionManager.prototype.getAllAssets = function() {
-  var assdefs = this.adStorage.getAll().map(function(record) {
+  var assetdefs = this.adStorage.getAll().map(function(record) {
     return new AssetDefinition(this.cdManager, record)
   }.bind(this))
 
-  return assdefs
+  return assetdefs
 }
 
 

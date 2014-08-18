@@ -3,50 +3,40 @@ var assert = require('assert')
 var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
+/**
+ * AssetDefinition description
+ * @typedef {Object} AssetDefinitionDesc
+ * @param {string[]} monikers
+ * @param {string[]} colorSchemes
+ * @param {number} [unit=1] Power of 10 and greater than 0
+ */
 
 /**
  * @class AssetDefinition
 
  * @param {coloredcoinjs-lib.color.ColorDefinitionManager} colorDefinitionManager
- * @param {Object} data
- * @param {Array} data.monikers
- * @param {Array} data.colorSet
- * @param {number} [data.unit=1] Power of 10 and greater than 0
+ * @param {AssetDefinitionDesc} data
+ * @throws {Error} If data.unit not power of 10
  */
 function AssetDefinition(colorDefinitionManager, data) {
-  assert(colorDefinitionManager instanceof cclib.color.ColorDefinitionManager,
-    'Expected ColorDefinitionManager colorDefinitionManager, got ' + colorDefinitionManager)
+  assert(data.colorSchemes.length === 1, 'Currently only single-color assets are supported')
 
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(_.isArray(data.monikers), 'Expected Array data.monikers, got ' + data.monikers)
-  data.monikers.forEach(function(moniker) {
-    assert(_.isString(moniker), 'Expected Array strings data.monikers, got ' + data.monikers)
-  })
-  assert(_.isArray(data.colorSet), 'Expected Array data.colorSet, got ' + data.colorSet)
-  data.colorSet.forEach(function(color) {
-    assert(_.isString(color), 'Expected Array strings data.colorSet, got ' + data.colorSet)
-  })
-  if (_.isUndefined(data.unit)) data.unit = 1
-  assert(_.isNumber(data.unit), 'Expected number data.unit, got ' + data.unit)
-
+  data.unit = _.isUndefined(data.unit) ? 1 : data.unit
   if (Math.log(data.unit) / Math.LN10 % 1 !== 0)
-    return new Error('data.unit must be power of 10 and greater than 0')
-
-  assert(data.colorSet.length === 1, 'Currently only single-color assets are supported')
+    throw new Error('data.unit must be power of 10 and greater than 0')
 
   this.monikers = data.monikers
-  this.colorSet = new cclib.color.ColorSet(colorDefinitionManager, data.colorSet)
+  this.colorSet = new cclib.color.ColorSet(colorDefinitionManager, data.colorSchemes)
   this.unit = data.unit
 }
 
 /**
- * @return {Object}
+ * @return {AssetDefinitionDesc}
  */
 AssetDefinition.prototype.getData = function() {
-  // Todo: replace to colorSet.getColorSchemes
   return {
     monikers: this.monikers,
-    colorSet: this.colorSet.getData(),
+    colorSchemes: this.colorSet.getColorSchemes(),
     unit: this.unit
   }
 }
@@ -59,15 +49,7 @@ AssetDefinition.prototype.getId = function() {
 }
 
 /**
- * @deprecated Not need, getId enough
- * @return {Array}
- */
-AssetDefinition.prototype.getIds = function() {
-  return [this.getId()]
-}
-
-/**
- * @return {Array}
+ * @return {string[]}
  */
 AssetDefinition.prototype.getMonikers = function() {
   return this.monikers

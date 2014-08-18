@@ -3,8 +3,8 @@
  *
  * As ColorTarget, just for asset
  *
- * @param {AssetDefinition} assetdef
- * @param {number} value
+ * @param {string} address
+ * @param {AssetValue} assetValue
  */
 function AssetTarget(address, assetValue) {
   this.address = address
@@ -12,8 +12,6 @@ function AssetTarget(address, assetValue) {
 }
 
 /**
- * Return target address
- *
  * @return {string}
  */
 AssetTarget.prototype.getAddress = function() {
@@ -21,8 +19,6 @@ AssetTarget.prototype.getAddress = function() {
 }
 
 /**
- * Return AssetValue of current assetTarget
- *
  * @return {AssetValue}
  */
 AssetTarget.prototype.getAssetValue = function() {
@@ -30,8 +26,6 @@ AssetTarget.prototype.getAssetValue = function() {
 }
 
 /**
- * Return AssetDefinition of current assetTarget
- *
  * @return {AssetDefinition}
  */
 AssetTarget.prototype.getAsset = function() {
@@ -39,8 +33,6 @@ AssetTarget.prototype.getAsset = function() {
 }
 
 /**
- * Return value in satoshi
- *
  * @return {number}
  */
 AssetTarget.prototype.getValue = function() {

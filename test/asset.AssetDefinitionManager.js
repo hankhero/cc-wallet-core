@@ -38,7 +38,7 @@ describe('asset.AssetDefinitionManager', function() {
   it('createAssetDefinition/getAllAssets', function() {
     adManager.createAssetDefinition({
       monikers: ['gold'],
-      colorSet: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+      colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
       unit: 10000
     })
     var assets = adManager.getAllAssets()

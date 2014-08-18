@@ -44,7 +44,7 @@ describe('Wallet', function() {
 
     var data = {
       monikers: ['gold'],
-      colorSet: ['epobc:73560ffd916267a70a1233eb63d5d97e79e7eac981a52860df1ac38d2568b3a5:0:274664'],
+      colorSchemes: ['epobc:73560ffd916267a70a1233eb63d5d97e79e7eac981a52860df1ac38d2568b3a5:0:274664'],
       unit: 10000
     }
     var assetdef = wallet.addAssetDefinition(data)
@@ -63,18 +63,19 @@ describe('Wallet', function() {
   })
 
   describe('asset methods', function() {
-    it('addAssetDefinition return error', function() {
-      var result = wallet.addAssetDefinition({
+    it('addAssetDefinition throw error', function() {
+      var data = {
         monikers: ['bitcoin'],
-        colorSet: ['']
-      })
-      expect(result).to.be.instanceof(Error)
+        colorSchemes: ['']
+      }
+      var fn = function() { wallet.addAssetDefinition(data) }
+      expect(fn).to.throw(Error)
     })
 
     it('addAssetDefinition return AssetDefinition', function() {
       var data = {
         monikers: ['gold'],
-        colorSet: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
         unit: 10
       }
       var result = wallet.addAssetDefinition(data)
@@ -85,14 +86,14 @@ describe('Wallet', function() {
     it('getAssetDefinitionByMoniker', function() {
       var result = wallet.getAssetDefinitionByMoniker('bitcoin')
       expect(result).to.be.instanceof(AssetDefinition)
-      expect(result.getData()).to.deep.equal({ monikers: ['bitcoin'], colorSet: [''], unit: 100000000 })
+      expect(result.getData()).to.deep.equal({ monikers: ['bitcoin'], colorSchemes: [''], unit: 100000000 })
     })
 
     it('getAllAssetDefinitions', function() {
       var result = wallet.getAllAssetDefinitions()
       expect(result).to.have.length(1)
       expect(result[0]).to.be.instanceof(AssetDefinition)
-      expect(result[0].getData()).to.deep.equal({ monikers: ['bitcoin'], colorSet: [''], unit: 100000000 })
+      expect(result[0].getData()).to.deep.equal({ monikers: ['bitcoin'], colorSchemes: [''], unit: 100000000 })
     })
   })
 
@@ -102,7 +103,7 @@ describe('Wallet', function() {
     beforeEach(function() {
       var result = wallet.addAssetDefinition({
         monikers: ['gold'],
-        colorSet: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
         unit: 10
       })
       expect(result).to.be.instanceof(AssetDefinition)
@@ -163,12 +164,10 @@ describe('Wallet', function() {
   describe('balance methods', function() {
     var bitcoin, epobc
 
-    this.timeout(5000)
-
     beforeEach(function() {
       var result = wallet.addAssetDefinition({
         monikers: ['gold'],
-        colorSet: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
         unit: 10
       })
       expect(result).to.be.instanceof(AssetDefinition)

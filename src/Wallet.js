@@ -53,30 +53,36 @@ function Wallet(data) {
 
 /**
  * @param {Object} data
- * @param {Array} data.monikers
- * @param {Array} data.colorSet
+ * @param {string[]} data.monikers
+ * @param {string[]} data.colorSchemes
  * @param {number} [data.unit=1]
- * @return {Error|null}
+ * @return {AssetDefinition}
+ * @throws {Error} If asset already exists
  */
 Wallet.prototype.addAssetDefinition = function(data) {
   var assetdef = this.adManager.createAssetDefinition(data)
-
-  if (!(assetdef instanceof Error))
-    this.getSomeAddress(assetdef)
-
+  this.getSomeAddress(assetdef)
   return assetdef
 }
 
 /**
  * @param {string} moniker
- * @return {AssetDefinition}
+ * @return {?AssetDefinition}
  */
 Wallet.prototype.getAssetDefinitionByMoniker = function(moniker) {
   return this.adManager.getByMoniker(moniker)
 }
 
 /**
- * @return {Array}
+ * @param {number} colorId
+ * @return {?AssetDefinition}
+ */
+Wallet.prototype.getAssetDefinitionByColorId = function(colorId) {
+  return this.adManager.getByColorId(colorId)
+}
+
+/**
+ * @return {AssetDefinition[]}
  */
 Wallet.prototype.getAllAssetDefinitions = function() {
   return this.adManager.getAllAssets()
@@ -89,16 +95,6 @@ Wallet.prototype.getAllAssetDefinitions = function() {
  * @return {number|Error}
  */
 Wallet.prototype._selectChain = function(assetdef) {
-  // Todo: add to doc, health it's durty code
-
-  if (assetdef instanceof cclib.color.ColorDefinition) {
-    var scheme = assetdef.getScheme()
-    if (scheme === '')
-      return this.aManager.UNCOLORED_CHAIN
-    if (scheme.indexOf('epobc') === 0)
-      return this.aManager.EPOBC_CHAIN
-  }
-
   assert(assetdef instanceof asset.AssetDefinition,
     'Expected AssetDefinition assetdef, got ' + assetdef)
 

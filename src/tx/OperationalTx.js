@@ -154,12 +154,12 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
  * @return {string}
  * @throws {Error} If targets not found or multi-color
  */
-// Todo: describe and health colordef
 OperationalTx.prototype.getChangeAddress = function(colordef) {
   if (!this.isMonoColor())
     throw new Error('multi-color not supported')
-  console.log('getChangeAddress ', this.wallet.getSomeAddress(colordef))
-  return this.wallet.getSomeAddress(colordef)
+
+  var assetdef = this.wallet.getAssetDefinitionByColorId(colordef.getColorId())
+  return this.wallet.getSomeAddress(assetdef)
 }
 
 

@@ -12,7 +12,7 @@ describe('storage.AssetDefinitionStorage', function() {
     adStorage.add({
       ids: ['111', '123'],
       monikers: ['gold'],
-      colorSet: ['scheme1', 'scheme2'],
+      colorSchemes: ['scheme1', 'scheme2'],
       unit: 10
     })
   })
@@ -26,24 +26,26 @@ describe('storage.AssetDefinitionStorage', function() {
     expect(adStorage).to.be.instanceof(storage.AssetDefinitionStorage)
   })
 
-  it('add return error, id already exist', function() {
-    var result = adStorage.add({
+  it('add throw error, id already exist', function() {
+    var data = {
       ids: ['113', '123'],
       monikers: ['silver'],
-      colorSet: [''],
+      colorSchemes: [''],
       unit: 1
-    })
-    expect(result).to.be.instanceof(Error)
+    }
+    var fn = function() { adStorage.add(data) }
+    expect(fn).to.throw(Error)
   })
 
-  it('add return error, moniker already exist', function() {
-    var result = adStorage.add({
+  it('add throw error, moniker already exist', function() {
+    var data = {
       ids: ['113'],
       monikers: ['gold'],
-      colorSet: [''],
+      colorSchemes: [''],
       unit: 1
-    })
-    expect(result).to.be.instanceof(Error)
+    }
+    var fn = function() { adStorage.add(data) }
+    expect(fn).to.throw(Error)
   })
 
   it('getByMoniker return null', function() {

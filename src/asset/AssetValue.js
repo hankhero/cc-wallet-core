@@ -12,8 +12,6 @@ function AssetValue(assetdef, value) {
 }
 
 /**
- * Return AssetDefinition of current assetValue
- *
  * @return {AssetDefinition}
  */
 AssetValue.prototype.getAsset = function() {
@@ -21,8 +19,6 @@ AssetValue.prototype.getAsset = function() {
 }
 
 /**
- * Return value in satoshi
- *
  * @return {number}
  */
 AssetValue.prototype.getValue = function() {
