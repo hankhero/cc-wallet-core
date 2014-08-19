@@ -9,17 +9,15 @@ var networks = Object.keys(bitcoin.networks).map(function(key) { return bitcoin.
 /**
  * @class Address
  *
- * @param {Object} opts
- * @param {bitcoinjs-lib.ECPubKey} opts.pubKey
- * @param {Object} opts.network Network description from bitcoinjs-lib.networks
+ * @param {bitcoinjs-lib.ECPubKey} pubKey
+ * @param {Object} network Network description from bitcoinjs-lib.networks
  */
-function Address(opts) {
-  assert(_.isObject(opts), 'Expected Object opts, got ' + opts)
-  assert(opts.pubKey instanceof ECPubKey, 'Expected bitcoinjs-lib.ECPubKey opts.pubKey, got ' + opts.pubKey)
-  assert(networks.indexOf(opts.network) !== -1, 'Unknow network type, got ' + opts.network)
+function Address(pubKey, network) {
+  assert(pubKey instanceof ECPubKey, 'Expected bitcoinjs-lib.ECPubKey pubKey, got ' + pubKey)
+  assert(networks.indexOf(network) !== -1, 'Unknow network type, got ' + network)
 
-  this.pubKey = opts.pubKey
-  this.network = opts.network
+  this.pubKey = pubKey
+  this.network = network
 }
 
 /**

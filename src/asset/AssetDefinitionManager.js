@@ -43,7 +43,6 @@ AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
     id: assetdef.getId(),
     monikers: assetdef.getMonikers(),
     colorSchemes: assetdef.getColorSet().getColorSchemes(),
-    colorIds: assetdef.getColorSet().getColorIds(),
     unit: assetdef.getData().unit
   })
 
@@ -56,19 +55,6 @@ AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
  */
 AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
   var result = this.adStorage.getByMoniker(moniker)
-
-  if (result !== null)
-    result = new AssetDefinition(this.cdManager, result)
-
-  return result
-}
-
-/**
- * @param {number} colorId
- * @return {?AssetDefinition}
- */
-AssetDefinitionManager.prototype.getByColorId = function(colorId) {
-  var result = this.adStorage.getByColorId(colorId)
 
   if (result !== null)
     result = new AssetDefinition(this.cdManager, result)

@@ -16,6 +16,15 @@ function isHexString(s) {
           s.toLowerCase().split('').every(function(x) { return set.indexOf(x) !== -1 }))
 }
 
+
+/**
+ * @typedef {Object} AddressStorageRecord
+ * @param {number} account Always equal 0
+ * @param {number} chain
+ * @param {number} index
+ * @param {string} pubKey bitcoinjs-lib.ECPubKey in hex format
+ */
+
 /**
  * @class AddressStorage
  *
@@ -53,100 +62,56 @@ AddressStorage.prototype.setMasterKey = function(newMasterKey) {
 /**
  * Get masterKey from store in base58
  *
- * @return {srting|undefined}
+ * @return {?srting}
  */
 AddressStorage.prototype.getMasterKey = function() {
-  return this.store.get(this.masterKeyDBKey)
+  var masterKey = this.store.get(this.masterKeyDBKey)
+  return _.isUndefined(masterKey) ? null : masterKey
 }
 
 /*
- * Add pubKey for account, chain and index to store
- *
  * @param {Object} data
- * @param {number} data.account
  * @param {number} data.chain
  * @param {number} data.index
  * @param {string} data.pubKey bitcoinjs-lib.ECPubKey in hex format
+ * @return {AddressStorageRecord}
+ * @throw {Error} If account, chain, index or pubKey exists
  */
 AddressStorage.prototype.addPubKey = function(data) {
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(_.isNumber(data.account), 'Expected number data.account, got ' + data.account)
-  assert(_.isNumber(data.chain), 'Expected number data.chain, got ' + data.chain)
-  assert(_.isNumber(data.index), 'Expected number data.index, got ' + data.index)
-  assert(isHexString(data.pubKey), 'Expected hex string data.pubKey, got ' + data.pubKey)
-
   var pubKeys = this.store.get(this.pubKeysDBKey) || []
 
   pubKeys.forEach(function(record) {
-    if ((record.account === data.account && record.chain === data.chain && record.index === data.index) ||
-        record.pubKey === data.pubKey)
-      throw new Error('UniqueConstraint')
+    if (record.chain === data.chain && record.index === data.index)
+      throw new Error('pubkey for given account, chain and index exists')
+
+    if (record.pubKey === data.pubKey)
+      throw new Error('pubKey already exists')
   })
 
-  pubKeys.push({
-    account: data.account,
+  var record = {
+    account: 0,
     chain: data.chain,
     index: data.index,
     pubKey: data.pubKey
-  })
+  }
+  pubKeys.push(record)
 
   this.store.set(this.pubKeysDBKey, pubKeys)
+
+  return record
 }
 
 /**
- * Get all pubKeys for account and chain
- *
- * @param {Object} data
- * @param {number} [data.account]
- * @param {number} [data.chain]
- * @return {Array}
+ * @param {number} [chain]
+ * @return {AddressStorageRecord[]}
  */
-AddressStorage.prototype.getAllPubKeys = function(data) {
-  data = _.isUndefined(data) ? {} : data
-  //assert(_.isObject(data), 'Expected Object data, got ' + data)
-  //assert(_.isNumber(data.account), 'Expected number data.account, got ' + data.account)
-  //assert(_.isNumber(data.chain), 'Expected number data.chain, got ' + data.chain)
-
-  function isGoodRecord(record) {
-    if (!_.isUndefined(data.account) && !_.isUndefined(data.chain))
-      return (record.account === data.account && record.chain === data.chain)
-
-    if (!_.isUndefined(data.account))
-      return (record.account === data.account)
-
-    if (!_.isUndefined(data.chain))
-      return (record.chain === data.chain)
-
-    return true
-  }
-
+AddressStorage.prototype.getPubKeys = function(chain) {
   var pubKeys = this.store.get(this.pubKeysDBKey) || []
-  return pubKeys.filter(isGoodRecord)
-}
 
-/**
- * Get max index for account and chain
- *
- * @param {Object} data
- * @param {number} data.account
- * @param {number} data.chain
- * @return {number|undefined}
- */
-AddressStorage.prototype.getMaxIndex = function(data) {
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(_.isNumber(data.account), 'Expected number data.account, got ' + data.account)
-  assert(_.isNumber(data.chain), 'Expected number data.chain, got ' + data.chain)
+  if (!_.isUndefined(chain))
+    pubKeys = pubKeys.filter(function(record) { return record.chain === chain })
 
-  var maxIndex
-
-  var pubKeys = this.store.get(this.pubKeysDBKey) || []
-  pubKeys.forEach(function(record) {
-    if (record.account === data.account && record.chain === data.chain &&
-       (record.index > maxIndex || _.isUndefined(maxIndex)))
-      maxIndex = record.index
-  })
-
-  return maxIndex
+  return pubKeys
 }
 
 /**

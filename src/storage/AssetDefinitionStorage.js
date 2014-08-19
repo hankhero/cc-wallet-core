@@ -5,12 +5,12 @@ var _ = require('lodash')
 
 var SyncStorage = require('./SyncStorage')
 
+
 /**
  * @typedef {Object} AssetDefinitionRecord
  * @param {string} id
  * @param {string[]} monikers
  * @param {string[]} colorSchemes
- * @param {number[]} colorIds
  * @param {number} unit
  */
 
@@ -50,7 +50,6 @@ AssetDefinitionStorage.prototype.add = function(data) {
     id: data.id,
     monikers: data.monikers,
     colorSchemes: data.colorSchemes,
-    colorIds: data.colorIds,
     unit: data.unit
   })
 
@@ -64,21 +63,6 @@ AssetDefinitionStorage.prototype.add = function(data) {
 AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
   var records = this.getAll().filter(function(record) {
     return (record.monikers.indexOf(moniker) !== -1)
-  })
-
-  if (records.length === 0)
-    return null
-
-  return records[0]
-}
-
-/**
- * @param {number} colorId
- * @return {?AssetDefinitionRecord}
- */
-AssetDefinitionStorage.prototype.getByColorId = function(colorId) {
-  var records = this.getAll().filter(function(record) {
-    return (record.colorIds.indexOf(colorId) !== -1)
   })
 
   if (records.length === 0)

@@ -70,20 +70,14 @@ OperationalTx.prototype.getRequiredFee = function(txSize) {
   var baseFee = 10000
   var feeValue = Math.ceil((txSize * baseFee) / 1000)
 
-  return new cclib.color.ColorValue({
-    colordef: new cclib.color.UncoloredColorDefinition(),
-    value: feeValue
-  })
+  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), feeValue)
 }
 
 /**
  * @return {ColorValue}
  */
 OperationalTx.prototype.getDustThreshold = function() {
-  return new cclib.color.ColorValue({
-    colordef: new cclib.color.UncoloredColorDefinition(),
-    value: 5500
-  })
+  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), 5500)
 }
 
 /**
@@ -109,13 +103,16 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     if (!colorValue.isUncolored() && feeEstimator !== null)
       throw new Error('feeEstimator can only be used with uncolored coins')
 
-    var coinQuery = self.wallet.getCoinQuery().onlyColoredAs(colordef)
+    var coinQuery = self.wallet.getCoinQuery()
+    coinQuery = coinQuery.onlyColoredAs(colordef)
+    coinQuery = coinQuery.onlyAddresses(self.wallet.getAllAddresses(colordef))
+
     return Q.ninvoke(coinQuery, 'getCoins')
 
   }).then(function(coinList) {
     var coins = coinList.getCoins()
 
-    var selectedCoinsColorValue = new cclib.color.ColorValue({ colordef: colordef, value: 0 })
+    var selectedCoinsColorValue = new cclib.color.ColorValue(colordef, 0)
     var selectedCoins = []
 
     var requiredSum = colorValue.clone()
@@ -158,8 +155,7 @@ OperationalTx.prototype.getChangeAddress = function(colordef) {
   if (!this.isMonoColor())
     throw new Error('multi-color not supported')
 
-  var assetdef = this.wallet.getAssetDefinitionByColorId(colordef.getColorId())
-  return this.wallet.getSomeAddress(assetdef)
+  return this.wallet.getSomeAddress(colordef)
 }
 
 
