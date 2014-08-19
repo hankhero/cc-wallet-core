@@ -8,6 +8,7 @@ var HDNode = bitcoin.HDNode
 var networks = Object.keys(bitcoin.networks).map(function(key) { return bitcoin.networks[key] })
 
 var Address = require('./Address')
+var AssetDefinition = require('../asset').AssetDefinition
 var storage = require('../storage')
 
 
@@ -49,6 +50,9 @@ function derive(rootNode, account, chain, index) {
 }
 
 
+var UNCOLORED_CHAIN = 0
+var EPOBC_CHAIN = 826130763
+
 /**
  * @class AddressManager
  *
@@ -59,16 +63,13 @@ function AddressManager(amStorage) {
 
   this.amStorage = amStorage
 
-  this.UNCOLORED_CHAIN = 0
-  this.EPOBC_CHAIN = 826130763
-
   this.privKeyCache = LRU()
 }
 
 /**
  * Set masterKey from seed and drop all created addresses
  *
- * @param {Buffer|string} seed Buffer or hex string
+ * @param {(Buffer|string)} seed Buffer or hex string
  * @param {Object} network Network description from bitcoinjs-lib.networks
  */
 AddressManager.prototype.setMasterKeyFromSeed = function(seed, network) {
@@ -94,50 +95,77 @@ AddressManager.prototype.setMasterKey = function(masterKey) {
   HDNode.fromBase58(masterKey) // Check masterKey
 
   this.amStorage.setMasterKey(masterKey)
+  this.privKeyCache.reset()
 }
 
 /**
- * Get masterKey from storage in base58 format or undefined if not exists
+ * Get masterKey from storage in base58 format
  *
- * @return {string|undefined} masterKey in base58 format
+ * @return {?string} masterKey in base58 format
+ * @throws {Error} If masterKey not defined
  */
 AddressManager.prototype.getMasterKey = function() {
-  return this.amStorage.getMasterKey()
+  var masterKey = this.amStorage.getMasterKey()
+  if (masterKey === null)
+    throw new Error('call setMasterKey first')
+
+  return masterKey
+}
+
+/**
+ * @param {(ColorDefinition|AssetDefinition)} definition
+ * @return {number}
+ * @throws {Error} If multi-color asset or unknown definition type
+ */
+AddressManager.prototype.selectChain = function(definition) {
+  var colordef = definition
+
+  if (colordef instanceof AssetDefinition) {
+    var colordefs = colordef.getColorSet().getColorDefinitions()
+    if (colordefs.length !== 1)
+      throw new Error('Currently only single-color assets are supported')
+
+    colordef = colordefs[0]
+  }
+
+  switch (colordef.getColorType()) {
+    case 'uncolored':
+      return UNCOLORED_CHAIN
+
+    case 'epobc':
+      return EPOBC_CHAIN
+
+    default:
+      throw new Error('Unknow ColorDefinition')
+  }
 }
 
 /**
  * Get new address and save it to db
  *
- * @param {Object} params
- * @param {number} params.account
- * @param {number} params.chain
+ * @param {(ColorDefinition|AssetDefinition)} definition
  * @return {Address}
+ * @throws {Error} If masterKey not defined
  */
-AddressManager.prototype.getNewAddress = function(params) {
-  assert(_.isObject(params), 'Expected Object params, got ' + params)
-  assert(_.isNumber(params.account), 'Expected number params.account, got ' + params.account)
-  assert(_.isNumber(params.chain), 'Expected number params.chain, got ' + params.chain)
+AddressManager.prototype.getNewAddress = function(definition) {
+  var chain = this.selectChain(definition)
+
+  var newIndex = 0
+  this.amStorage.getPubKeys(chain).forEach(function(record) {
+    if (record.index >= newIndex)
+      newIndex = record.index + 1
+  })
 
   var masterKey = this.getMasterKey()
-  if (_.isUndefined(masterKey))
-    throw new Error('set masterKey first')
-
-  var maxIndex = this.amStorage.getMaxIndex({ account: params.account, chain: params.chain })
-  var newIndex = _.isUndefined(maxIndex) ? 0 : maxIndex + 1
-
-  var newNode = derive(HDNode.fromBase58(masterKey), params.account, params.chain, newIndex)
+  var newNode = derive(HDNode.fromBase58(masterKey), 0, chain, newIndex)
 
   this.amStorage.addPubKey({
-    account: params.account,
-    chain: params.chain,
+    chain: chain,
     index: newIndex,
     pubKey: newNode.pubKey.toHex()
   })
 
-  var newAddress = new Address({
-    pubKey: newNode.pubKey,
-    network: newNode.network
-  })
+  var newAddress = new Address(newNode.pubKey, newNode.network)
 
   return newAddress
 }
@@ -145,20 +173,15 @@ AddressManager.prototype.getNewAddress = function(params) {
 /**
  * Get first address if exists else create and return it
  *
- * @param {Object} params
- * @param {number} params.account
- * @param {number} params.chain
- * @return {Address}
+ * @param {(ColorDefinition|AssetDefinition)} definition
+ * @return {Address[]}
+ * @throws {Error} If masterKey not defined
  */
-AddressManager.prototype.getSomeAddress = function(params) {
-  assert(_.isObject(params), 'Expected Object params, got ' + params)
-  assert(_.isNumber(params.account), 'Expected number params.account, got ' + params.account)
-  assert(_.isNumber(params.chain), 'Expected number params.chain, got ' + params.chain)
-
-  var addresses = this.getAllAddresses(params)
+AddressManager.prototype.getSomeAddress = function(definition) {
+  var addresses = this.getAllAddresses(definition)
 
   if (addresses.length === 0)
-    addresses = [this.getNewAddress(params)]
+    addresses = [this.getNewAddress(definition)]
 
   return addresses[0]
 }
@@ -166,33 +189,30 @@ AddressManager.prototype.getSomeAddress = function(params) {
 /**
  * Get all addresses
  *
- * @param {Object} params
- * @param {number} params.account
- * @param {number} params.chain
- * @return {Array}
+ * @param {(ColorDefinition|AssetDefinition)} [definition]
+ * @return {Address[]}
+ * @throws {Error} If masterKey not defined
  */
-AddressManager.prototype.getAllAddresses = function(params) {
-  assert(_.isObject(params), 'Expected Object params, got ' + params)
-  assert(_.isNumber(params.account), 'Expected number params.account, got ' + params.account)
-  assert(_.isNumber(params.chain), 'Expected number params.chain, got ' + params.chain)
-
-  var masterKey = this.getMasterKey()
-  if (_.isUndefined(masterKey))
-    throw new Error('set masterKey first')
-
-  var network = HDNode.fromBase58(masterKey).network
+AddressManager.prototype.getAllAddresses = function(definition) {
+  var network = HDNode.fromBase58(this.getMasterKey()).network
 
   function record2address(record) {
-    return new Address({ pubKey: ECPubKey.fromHex(record.pubKey), network: network })
+    return new Address(ECPubKey.fromHex(record.pubKey), network)
   }
 
-  return this.amStorage.getAllPubKeys({ account: params.account, chain: params.chain }).map(record2address)
+  var chain
+  if (!_.isUndefined(definition))
+    chain = this.selectChain(definition)
+
+  var pubKeys = this.amStorage.getPubKeys(chain).map(record2address)
+
+  return pubKeys
 }
 
 /**
  * @param {string} address
  * @return {bitcoinjs-lib.ECKey}
- * @throws {Error} If address not found
+ * @throws {Error} If address not found or masterKey not defined
  */
 AddressManager.prototype.getPrivKeyByAddress = function(address) {
   var privKey = this.privKeyCache.get(address)
@@ -200,11 +220,10 @@ AddressManager.prototype.getPrivKeyByAddress = function(address) {
     return privKey
 
   var masterKey = this.getMasterKey()
-
   var network = HDNode.fromBase58(masterKey).network
 
-  var record = this.amStorage.getAllPubKeys().filter(function(record) {
-    var recordAddress = new Address({ pubKey: ECPubKey.fromHex(record.pubKey), network: network })
+  var record = this.amStorage.getPubKeys().filter(function(record) {
+    var recordAddress = new Address(ECPubKey.fromHex(record.pubKey), network)
     return recordAddress.getAddress() === address
   })
 
@@ -212,6 +231,8 @@ AddressManager.prototype.getPrivKeyByAddress = function(address) {
     throw new Error('address not found')
 
   var node = derive(HDNode.fromBase58(masterKey), record[0].account, record[0].chain, record[0].index)
+  this.privKeyCache.set(address, node.privKey)
+
   return node.privKey
 }
 

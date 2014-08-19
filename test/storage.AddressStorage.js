@@ -24,13 +24,13 @@ describe('storage.AddressStorage', function() {
   })
 
   it('setMasterKey reset all records', function() {
-    aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 })
+    aStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex1 })
     aStorage.setMasterKey(masterKey1)
-    expect(aStorage.getAllPubKeys({ account: 0, chain: 0 })).to.have.length(0)
+    expect(aStorage.getPubKeys(0)).to.have.length(0)
   })
 
   it('getMasterKey return null', function() {
-    expect(aStorage.getMasterKey()).to.be.undefined
+    expect(aStorage.getMasterKey()).to.be.null
   })
 
   it('getMasterKey', function() {
@@ -39,33 +39,21 @@ describe('storage.AddressStorage', function() {
   })
 
   it('addPubKey throw UniqueConstraint for account, chain and index', function() {
-    aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 })
-    var fn = function() { aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex2 }) }
+    aStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex1 })
+    var fn = function() { aStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex2 }) }
     expect(fn).to.throw(Error)
   })
 
   it('addPubKey throw UniqueConstraint for pubKey', function() {
-    aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 })
-    var fn = function() { aStorage.addPubKey({ account: 1, chain: 0, index: 0, pubKey: pubKeyHex1 }) }
+    aStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex1 })
+    var fn = function() { aStorage.addPubKey({ chain: 0, index: 1, pubKey: pubKeyHex1 }) }
     expect(fn).to.throw(Error)
   })
 
-  it('getAllPubKeys', function() {
-    aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 })
-    aStorage.addPubKey({ account: 1, chain: 0, index: 0, pubKey: pubKeyHex2 })
-    var pubKeys = aStorage.getAllPubKeys({ account: 0, chain: 0 })
+  it('getPubKeys', function() {
+    aStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex1 })
+    aStorage.addPubKey({ chain: 1, index: 0, pubKey: pubKeyHex2 })
+    var pubKeys = aStorage.getPubKeys(0)
     expect(pubKeys).to.deep.equal([{ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 }])
-  })
-
-  it('getMaxIndex for empty db', function() {
-    var maxIndex = aStorage.getMaxIndex({ account: 0, chain: 0 })
-    expect(maxIndex).to.be.undefined
-  })
-
-  it('getMaxIndex', function() {
-    aStorage.addPubKey({ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 })
-    aStorage.addPubKey({ account: 0, chain: 0, index: 3, pubKey: pubKeyHex2 })
-    var maxIndex = aStorage.getMaxIndex({ account: 0, chain: 0 })
-    expect(maxIndex).to.equal(3)
   })
 })

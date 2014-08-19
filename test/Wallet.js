@@ -111,48 +111,14 @@ describe('Wallet', function() {
       epobc = wallet.getAssetDefinitionByMoniker('gold')
     })
 
-    it('_selectChain return UNCOLORED_CHAIN', function() {
-      var chain = wallet._selectChain(bitcoin)
-      expect(chain).to.equal(wallet.aManager.UNCOLORED_CHAIN)
-    })
-
-    it('_selectChain return EPOBC_CHAIN', function() {
-      var chain = wallet._selectChain(epobc)
-      expect(chain).to.equal(wallet.aManager.EPOBC_CHAIN)
-    })
-
-    it('_selectChain return Error', function() {
-      bitcoin.getColorSet().colorSchemes = ['this bad way']
-      var chain = wallet._selectChain(bitcoin)
-      expect(chain).to.be.instanceof(Error)
-    })
-
-    it('getNewAddress return error', function() {
-      bitcoin.getColorSet().colorSchemes = ['this bad way']
-      var newAddress = wallet.getNewAddress(bitcoin)
-      expect(newAddress).to.be.instanceof(Error)
-    })
-
     it('getNewAddress', function() {
       var newAddress = wallet.getNewAddress(bitcoin)
       expect(newAddress).to.equal('mmFYK2Mofiwtm68ZTYK7etjiGyf3SeLkgo')
     })
 
-    it('getSomeAddress return error', function() {
-      bitcoin.getColorSet().colorSchemes = ['this bad way']
-      var someAddress = wallet.getSomeAddress(bitcoin)
-      expect(someAddress).to.be.instanceof(Error)
-    })
-
     it('getSomeAddress', function() {
       var someAddress = wallet.getSomeAddress(bitcoin)
       expect(someAddress).to.equal('mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd')
-    })
-
-    it('getAllAddresses return error', function() {
-      bitcoin.getColorSet().colorSchemes = ['this bad way']
-      var addresses = wallet.getAllAddresses(bitcoin)
-      expect(addresses).to.be.instanceof(Error)
     })
 
     it('getAllAddresses', function() {

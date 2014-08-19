@@ -13,12 +13,12 @@ describe('Address', function() {
 
   describe('getAddress', function() {
     it('for bitcoin', function() {
-      address = new Address({ pubKey: pubKey0, network: networks.bitcoin })
+      address = new Address(pubKey0, networks.bitcoin)
       expect(address.getAddress()).to.equal('18KMigSHDPVFzsgWe1mcaPPA5wSY3Ur5wS')
     })
 
     it('for testnet', function() {
-      address = new Address({ pubKey: pubKey0, network: networks.testnet })
+      address = new Address(pubKey0, networks.testnet)
       expect(address.getAddress()).to.equal('mnqK1jXG2QvWmzA8MajzQJbUww3ExLrWTA')
     })
   })

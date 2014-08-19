@@ -26,8 +26,6 @@ function Wallet(data) {
   assert(_.isBoolean(data.testnet), 'Expected boolean data.testnet, got ' + data.testnet)
 
 
-  this.config = new storage.ConfigStorage()
-
   this.aStorage = new storage.AddressStorage()
   this.aManager = new AddressManager(this.aStorage)
   var network = data.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
@@ -74,14 +72,6 @@ Wallet.prototype.getAssetDefinitionByMoniker = function(moniker) {
 }
 
 /**
- * @param {number} colorId
- * @return {?AssetDefinition}
- */
-Wallet.prototype.getAssetDefinitionByColorId = function(colorId) {
-  return this.adManager.getByColorId(colorId)
-}
-
-/**
  * @return {AssetDefinition[]}
  */
 Wallet.prototype.getAllAssetDefinitions = function() {
@@ -89,71 +79,36 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 }
 
 /**
- * Return chain number for address actions
- *
- * @param {AssetDefinition} assetdef
- * @return {number|Error}
- */
-Wallet.prototype._selectChain = function(assetdef) {
-  assert(assetdef instanceof asset.AssetDefinition,
-    'Expected AssetDefinition assetdef, got ' + assetdef)
-
-  var chain
-
-  if (assetdef.getColorSet().isUncoloredOnly()) {
-    chain = this.aManager.UNCOLORED_CHAIN
-
-  } else if (assetdef.getColorSet().isEPOBCOnly()) {
-    chain = this.aManager.EPOBC_CHAIN
-
-  } else {
-    chain = new Error('Wallet chain not defined for this AssetDefintion')
-
-  }
-
-  return chain
-}
-
-/**
  * Create new address for given asset
  *
  * @param {AssetDefinition} assetdef
- * @return {string|Error}
+ * @return {string}
+ * @throws {Error} If masterKey not defined
  */
 Wallet.prototype.getNewAddress = function(assetdef) {
-  var chain = this._selectChain(assetdef)
-  if (chain instanceof Error)
-    return chain
-
-  return this.aManager.getNewAddress({ account: 0, chain: chain }).getAddress()
+  return this.aManager.getNewAddress(assetdef).getAddress()
 }
 
 /**
  * Return first address for given asset or create if not exist
  *
  * @param {AssetDefinition} assetdef
- * @return {string|Error}
+ * @return {string}
+ * @throws {Error} If masterKey not defined
  */
 Wallet.prototype.getSomeAddress = function(assetdef) {
-  var chain = this._selectChain(assetdef)
-  if (chain instanceof Error)
-    return chain
-
-  return this.aManager.getSomeAddress({ account: 0, chain: chain }).getAddress()
+  return this.aManager.getSomeAddress(assetdef).getAddress()
 }
 
 /**
  * Return all addresses for given asset
  *
  * @param {AssetDefinition} assetdef
- * @return {string|Error}
+ * @return {string[]}
+ * @throws {Error} If masterKey not defined
  */
 Wallet.prototype.getAllAddresses = function(assetdef) {
-  var chain = this._selectChain(assetdef)
-  if (chain instanceof Error)
-    return chain
-
-  var addresses = this.aManager.getAllAddresses({ account: 0, chain: chain })
+  var addresses = this.aManager.getAllAddresses(assetdef)
   return addresses.map(function(address) { return address.getAddress() })
 }
 
@@ -163,9 +118,7 @@ Wallet.prototype.getAllAddresses = function(assetdef) {
  * @return {CoinQuery}
  */
 Wallet.prototype.getCoinQuery = function() {
-  var addresses = []
-  addresses = addresses.concat(this.aManager.getAllAddresses({ account: 0, chain: this.aManager.UNCOLORED_CHAIN }))
-  addresses = addresses.concat(this.aManager.getAllAddresses({ account: 0, chain: this.aManager.EPOBC_CHAIN }))
+  var addresses = this.aManager.getAllAddresses()
   addresses = addresses.map(function(address) { return address.getAddress() })
 
   return new cclib.coin.CoinQuery({
@@ -196,10 +149,10 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
   assert(!opts.onlyConfirmed || !opts.onlyUnconfirmed, 'opts.onlyConfirmed and opts.onlyUnconfirmed both is true')
   assert(_.isFunction(cb), 'Expected function cb, got ' + cb)
 
-  var colors = assetdef.getColorSet().getColorIds().map(function(colorId) {
-    return this.cdManager.getByColorId({ colorId: colorId })
-  }.bind(this))
-  var coinQuery = this.getCoinQuery().onlyColoredAs(colors)
+  var coinQuery = this.getCoinQuery()
+  coinQuery = coinQuery.onlyColoredAs(assetdef.getColorSet().getColorDefinitions())
+  coinQuery = coinQuery.onlyAddresses(this.getAllAddresses(assetdef))
+
   if (opts.onlyConfirmed)
     coinQuery = coinQuery.getConfirmed()
   if (opts.onlyUnconfirmed)
@@ -300,7 +253,6 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
  * Drop all data from storage's
  */
 Wallet.prototype.clearStorage = function() {
-  this.config.clear()
   this.aStorage.clear()
   this.cDataStorage.clear()
   this.cdStorage.clear()

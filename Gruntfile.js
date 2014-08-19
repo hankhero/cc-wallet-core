@@ -62,6 +62,15 @@ module.exports = function(grunt) {
         }
       }
     },
+    mochaTest: {
+      test: {
+        options: {
+          reporter: 'spec',
+          timeout: 8000
+        },
+        src: ['test/*.js']
+      }
+    },
     uglify: {
       production: {
         files: {
@@ -98,9 +107,11 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify')
   grunt.loadNpmTasks('grunt-contrib-watch')
   grunt.loadNpmTasks('grunt-mocha-istanbul')
+  grunt.loadNpmTasks('grunt-mocha-test')
 
   grunt.registerTask('compile', ['browserify:production', 'uglify:production'])
   grunt.registerTask('compile_test', ['browserify:test'])
   grunt.registerTask('coverage', ['mocha_istanbul:coverage'])
   grunt.registerTask('coveralls', ['mocha_istanbul:coveralls'])
+  grunt.registerTask('test', ['mochaTest'])
 }

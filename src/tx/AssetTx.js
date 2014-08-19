@@ -77,10 +77,10 @@ AssetTx.prototype.makeOperationalTx = function() {
     throw new Error('not supported multi color OperationalTx')
 
   var assetdef = this.targets[0].getAsset()
-  var colordef = this.wallet.cdManager.getByColorId({colorId: assetdef.getColorSet().getColorIds()[0] })
+  var colordef = this.wallet.cdManager.getByColorId(assetdef.getColorSet().getColorIds()[0])
 
   var colorTargets = this.targets.map(function(target) {
-    var colorValue = new cclib.color.ColorValue({ colordef: colordef, value: target.getValue() })
+    var colorValue = new cclib.color.ColorValue(colordef, target.getValue())
     return new cclib.color.ColorTarget(target.getAddress(), colorValue)
   })
 
