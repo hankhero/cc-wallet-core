@@ -28,8 +28,8 @@ function Wallet(data) {
 
   this.aStorage = new storage.AddressStorage()
   this.aManager = new AddressManager(this.aStorage)
-  var network = data.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
-  this.aManager.setMasterKeyFromSeed(data.masterKey, network)
+  this.network = data.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  this.aManager.setMasterKeyFromSeed(data.masterKey, this.network)
 
   this.blockchain = new cclib.blockchain.BlockrIOAPI({ testnet: data.testnet })
 
@@ -41,10 +41,7 @@ function Wallet(data) {
 
   this.adStorage = new storage.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
-
-  this.adManager.getAllAssets().forEach(function(assetdef) {
-    this.getSomeAddress(assetdef)
-  }.bind(this))
+  this.adManager.getAllAssets().forEach(this.getSomeAddress.bind(this))
 
   this.txTransformer = new tx.TxTransformer()
 }
@@ -113,6 +110,32 @@ Wallet.prototype.getAllAddresses = function(assetdef) {
 }
 
 /**
+ * @param {string} address
+ * @return {boolean}
+ */
+Wallet.prototype.checkAddress = function(assetdef, address) {
+  var isValid = true
+
+  /** Check colorId, except bitcoin */
+  var colordefs = assetdef.getColorSet().getColorDefinitions()
+  var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored'
+  if (!isBitcoinAsset) {
+    isValid = isValid && assetdef.getId() === address.split('@')[0]
+    address = address.split('@')[1]
+  }
+
+  /** Check bitcoin address */
+  try {
+    address = bitcoin.Address.fromBase58Check(address)
+    isValid = isValid && address.version === this.network.pubKeyHash
+  } catch (e) {
+    isValid = false
+  }
+
+  return isValid
+}
+
+/**
  * Return new CoinQuery for request confirmed/unconfirmed coins, balance ...
  *
  * @return {CoinQuery}
@@ -149,37 +172,36 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
   assert(!opts.onlyConfirmed || !opts.onlyUnconfirmed, 'opts.onlyConfirmed and opts.onlyUnconfirmed both is true')
   assert(_.isFunction(cb), 'Expected function cb, got ' + cb)
 
-  var coinQuery = this.getCoinQuery()
-  coinQuery = coinQuery.onlyColoredAs(assetdef.getColorSet().getColorDefinitions())
-  coinQuery = coinQuery.onlyAddresses(this.getAllAddresses(assetdef))
+  var self = this
 
-  if (opts.onlyConfirmed)
-    coinQuery = coinQuery.getConfirmed()
-  if (opts.onlyUnconfirmed)
-    coinQuery = coinQuery.getUnconfirmed()
+  Q.fcall(function() {
+    var coinQuery = self.getCoinQuery()
+    coinQuery = coinQuery.onlyColoredAs(assetdef.getColorSet().getColorDefinitions())
+    coinQuery = coinQuery.onlyAddresses(self.getAllAddresses(assetdef))
 
-  coinQuery.getCoins(function(error, coinList) {
-    if (error !== null) {
-      cb(error)
-      return
-    }
+    if (opts.onlyConfirmed)
+      coinQuery = coinQuery.getConfirmed()
+    if (opts.onlyUnconfirmed)
+      coinQuery = coinQuery.getUnconfirmed()
 
-    coinList.getTotalValue(function(error, colorValues) {
-      if (error !== null) {
-        cb(error)
-        return
-      }
+    return Q.ninvoke(coinQuery, 'getCoins')
 
-      var balance = 0
-      if (colorValues.length === 1)
-        balance = colorValues[0].getValue()
-      // When supported more than one colorDefinition in one AssetDefinition
-      //if (colorValues.length > 1)
-      //  balance = colorValues.reduce(function(cv1, cv2) { return cv1.getValue() + cv2.getValue() })
+  }).then(function(coinList) {
+    return Q.ninvoke(coinList, 'getTotalValue')
 
-      cb(null, balance)
-    })
-  })
+  }).then(function(colorValues) {
+    if (colorValues.length === 0)
+      return 0
+
+    return cclib.color.ColorValue.sum(colorValues).getValue()
+
+  }).then(function(balance) {
+    cb(null, balance)
+
+  }).fail(function(error) {
+    cb(error)
+
+  }).done()
 }
 
 /**

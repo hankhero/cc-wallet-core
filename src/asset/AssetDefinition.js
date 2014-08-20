@@ -3,6 +3,7 @@ var assert = require('assert')
 var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
+
 /**
  * AssetDefinition description
  * @typedef {Object} AssetDefinitionDesc
