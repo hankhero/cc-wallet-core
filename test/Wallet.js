@@ -125,6 +125,16 @@ describe('Wallet', function() {
       var addresses = wallet.getAllAddresses(bitcoin)
       expect(addresses).to.deep.equal(['mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd'])
     })
+
+    it('checkAddress bitcoin', function() {
+      var isValid = wallet.checkAddress(bitcoin, 'mgFmR51KZRKb2jcmJb276KQK9enC9cmG9v')
+      expect(isValid).to.be.true
+    })
+
+    it('checkAddress color', function() {
+      var isValid = wallet.checkAddress(epobc, 'ES5wsZmWHs5xzP@mgFmR51KZRKb2jcmJb276KQK9enC9cmG9v')
+      expect(isValid).to.be.true
+    })
   })
 
   describe('balance methods', function() {

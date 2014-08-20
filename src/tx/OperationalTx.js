@@ -89,7 +89,7 @@ OperationalTx.prototype.getDustThreshold = function() {
 
 /*
  * @param {ColorValue}
- * @param {Object|null} [feeEstimator=null]
+ * @param {?Object} [feeEstimator=null]
  * @param {OperationalTx~selectCoins} cb
  */
 OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
