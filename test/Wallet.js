@@ -40,6 +40,9 @@ describe('Wallet', function() {
   })
 
   it('sendCoins epobc', function(done) {
+    // For scan all chain color transactions need time
+    this.timeout(30000)
+
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
 
     var data = {
