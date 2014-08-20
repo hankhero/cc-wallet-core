@@ -41,9 +41,13 @@ AssetDefinitionStorage.prototype.add = function(data) {
     if (record.id === data.id)
       throw new Error('exists asset already have same id')
 
-    var someMoniker = data.monikers.some(function(moniker) { return (record.monikers.indexOf(moniker) !== -1) })
+    var someMoniker = data.monikers.some(function(moniker) { return record.monikers.indexOf(moniker) !== -1 })
     if (someMoniker)
       throw new Error('exists asset already have same moniker')
+
+    var someColorScheme = data.colorSchemes.some(function(cs) { return record.colorSchemes.indexOf(cs) !== -1 })
+    if (someColorScheme)
+      throw new Error('exists asset already have same colorScheme')
   })
 
   records.push({
