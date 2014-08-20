@@ -135,30 +135,38 @@ Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
   return addresses
 }
 
+
+Wallet.prototype.getBitcoinAddress = function (assetdef, address) {
+    /** Check colorId, except bitcoin */
+    var colordefs = assetdef.getColorSet().getColorDefinitions();
+    var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored';
+    if (!isBitcoinAsset) {
+        if (assetdef.getId() !== address.split('@')[0])
+            return null;
+        return address.split('@')[1];
+    } else return address;    
+};
+
+
 /**
  * @param {string} address
  * @return {boolean}
  */
 Wallet.prototype.checkAddress = function(assetdef, address) {
-  var isValid = true
+    address = this.getBitcoinAddress(assetdef, address);
+    if (!address)
+        return false;   
+          
+    var isValid = true;
+    /** Check bitcoin address */
+    try {
+        address = bitcoin.Address.fromBase58Check(address);
+        isValid = isValid && address.version === this.network.pubKeyHash;
+    } catch (e) {
+        isValid = false;
+    }
 
-  /** Check colorId, except bitcoin */
-  var colordefs = assetdef.getColorSet().getColorDefinitions()
-  var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored'
-  if (!isBitcoinAsset) {
-    isValid = isValid && assetdef.getId() === address.split('@')[0]
-    address = address.split('@')[1]
-  }
-
-  /** Check bitcoin address */
-  try {
-    address = bitcoin.Address.fromBase58Check(address)
-    isValid = isValid && address.version === this.network.pubKeyHash
-  } catch (e) {
-    isValid = false
-  }
-
-  return isValid
+    return isValid;
 }
 
 /**
