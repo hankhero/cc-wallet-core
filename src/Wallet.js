@@ -76,37 +76,63 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 }
 
 /**
+ * Param asColor in address method not good solution
+ * But sometimes we need bitcoin address for ColorDefintion,
+ *  such as in OperationalTx.getChangeAddress
+ */
+
+/**
  * Create new address for given asset
  *
  * @param {AssetDefinition} assetdef
+ * @param {boolean} [asColorAddress=false]
  * @return {string}
  * @throws {Error} If masterKey not defined
  */
-Wallet.prototype.getNewAddress = function(assetdef) {
-  return this.aManager.getNewAddress(assetdef).getAddress()
+Wallet.prototype.getNewAddress = function(assetdef, asColorAddress) {
+  var address = this.aManager.getNewAddress(assetdef).getAddress()
+
+  if (asColorAddress === true)
+    address = assetdef.getId() + '@' + address
+
+  return address
 }
 
 /**
  * Return first address for given asset or create if not exist
  *
  * @param {AssetDefinition} assetdef
+ * @param {boolean} [asColorAddress=false]
  * @return {string}
  * @throws {Error} If masterKey not defined
  */
-Wallet.prototype.getSomeAddress = function(assetdef) {
-  return this.aManager.getSomeAddress(assetdef).getAddress()
+Wallet.prototype.getSomeAddress = function(assetdef, asColorAddress) {
+  var address = this.aManager.getSomeAddress(assetdef).getAddress()
+
+  if (asColorAddress === true)
+    address = assetdef.getId() + '@' + address
+
+  return address
 }
 
 /**
  * Return all addresses for given asset
  *
  * @param {AssetDefinition} assetdef
+ * @param {boolean} [asColorAddress=false]
  * @return {string[]}
  * @throws {Error} If masterKey not defined
  */
-Wallet.prototype.getAllAddresses = function(assetdef) {
+Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
   var addresses = this.aManager.getAllAddresses(assetdef)
-  return addresses.map(function(address) { return address.getAddress() })
+  addresses = addresses.map(function(address) { return address.getAddress() })
+
+  if (asColorAddress === true) {
+    var assetId = assetdef.getId()
+    addresses = addresses.map(function(address) { return assetId + '@' + address })
+  }
+
+  return addresses
 }
 
 /**
