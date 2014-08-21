@@ -70,8 +70,19 @@ AssetDefinition.prototype.getColorSet = function() {
 AssetDefinition.prototype.parseValue = function(portion) {
   assert(_.isString(portion), 'Expected string portion, got ' + portion)
 
-  var value = parseFloat(portion);
-  return Math.round(value * this.unit);
+  var items = portion.split('.')
+
+  var value = parseInt(items[0]) * this.unit
+
+  if (!_.isUndefined(items[1])) {
+    var centString = items[1] + Array(this.unit.toString().length).join('0')
+    var centValue = parseInt(centString.slice(0, this.unit.toString().length-1))
+
+    if (!isNaN(centValue))
+      value += centValue
+  }
+
+  return value
 }
 
 /**

@@ -135,38 +135,43 @@ Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
   return addresses
 }
 
-
+/**
+ * @param {AssetDefinition} assetdef
+ * @param {string} address
+ * @return {string}
+ */
 Wallet.prototype.getBitcoinAddress = function (assetdef, address) {
-    /** Check colorId, except bitcoin */
-    var colordefs = assetdef.getColorSet().getColorDefinitions();
-    var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored';
-    if (!isBitcoinAsset) {
-        if (assetdef.getId() !== address.split('@')[0])
-            return null;
-        return address.split('@')[1];
-    } else return address;    
-};
+  /** Check colorId, except bitcoin */
+  var colordefs = assetdef.getColorSet().getColorDefinitions()
+  var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored'
+  if (!isBitcoinAsset) {
+    if (assetdef.getId() !== address.split('@')[0])
+      return null
+    return address.split('@')[1]
+  }
 
+  return address
+}
 
 /**
+ * @param {AssetDefinition} assetdef
  * @param {string} address
  * @return {boolean}
  */
 Wallet.prototype.checkAddress = function(assetdef, address) {
-    address = this.getBitcoinAddress(assetdef, address);
-    if (!address)
-        return false;   
-          
-    var isValid = true;
-    /** Check bitcoin address */
-    try {
-        address = bitcoin.Address.fromBase58Check(address);
-        isValid = isValid && address.version === this.network.pubKeyHash;
-    } catch (e) {
-        isValid = false;
-    }
+  address = this.getBitcoinAddress(assetdef, address)
+  if (address === null)
+    return false
 
-    return isValid;
+  /** Check bitcoin address */
+  try {
+    var isValid = bitcoin.Address.fromBase58Check(address).version === this.network.pubKeyHash
+    return isValid
+
+  } catch (e) {
+    return false
+
+  }
 }
 
 /**
@@ -229,13 +234,7 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
 
     return cclib.color.ColorValue.sum(colorValues).getValue()
 
-  }).then(function(balance) {
-    cb(null, balance)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(balance) { cb(null, balance) }, function(error) { cb(error) })
 }
 
 /**
@@ -296,13 +295,7 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
   }).then(function(signedTx) {
     return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
 
-  }).then(function(txId) {
-    cb(null, txId)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(txId) { cb(null, txId) }, function(error) { cb(error) })
 }
 
 /**
