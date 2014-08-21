@@ -138,13 +138,7 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
 
     return appendUntil(0)
 
-  }).then(function(data) {
-    cb(null, data.coins, data.value)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(data) { cb(null, data.coins, data.value) }, function(error) { cb(error) })
 }
 
 /**

@@ -72,13 +72,7 @@ TxTranformer.prototype.transformAssetTx = function(assetTx, targetKind, cb) {
     var operationalTx = assetTx.makeOperationalTx()
     return Q.ninvoke(self, 'transformTx', operationalTx, targetKind)
 
-  }).then(function(targetTx) {
-    cb(null, targetTx)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 /**
@@ -114,13 +108,7 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
   }).then(function(composedTx) {
     return Q.ninvoke(self, 'transformTx', composedTx, targetKind)
 
-  }).then(function(targetTx) {
-    cb(null, targetTx)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 /**
@@ -165,13 +153,7 @@ TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb
 
     return ccTx
 
-  }).then(function(targetTx) {
-    cb(null, targetTx)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 /**
@@ -227,13 +209,7 @@ TxTranformer.prototype.transformTx = function(tx, targetKind, cb) {
 
     throw new Error('targetKind is not recognized')
 
-  }).then(function(targetTx) {
-    cb(null, targetTx)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 

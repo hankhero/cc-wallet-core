@@ -221,13 +221,7 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
 
     return cclib.color.ColorValue.sum(colorValues).getValue()
 
-  }).then(function(balance) {
-    cb(null, balance)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(balance) { cb(null, balance) }, function(error) { cb(error) })
 }
 
 /**
@@ -288,13 +282,7 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
   }).then(function(signedTx) {
     return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
 
-  }).then(function(txId) {
-    cb(null, txId)
-
-  }).fail(function(error) {
-    cb(error)
-
-  }).done()
+  }).done(function(txId) { cb(null, txId) }, function(error) { cb(error) })
 }
 
 /**

@@ -157,7 +157,7 @@ describe('Wallet', function() {
     it('getAvailableBalance for bitcoin', function(done) {
       wallet.getAvailableBalance(bitcoin, function(error, balance) {
         expect(error).to.be.null
-        expect(balance).to.equal(67000000)
+        expect(balance).to.equal(66973389)
         done()
       })
     })
@@ -173,7 +173,7 @@ describe('Wallet', function() {
     it('getTotalBalance for bitcoin', function(done) {
       wallet.getTotalBalance(bitcoin, function(error, balance) {
         expect(error).to.be.null
-        expect(balance).to.equal(67000000)
+        expect(balance).to.equal(66973389)
         done()
       })
     })
