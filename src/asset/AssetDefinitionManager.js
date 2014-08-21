@@ -1,10 +1,4 @@
-var assert = require('assert')
-
-var _ = require('lodash')
-var ColorDefinitionManager = require('coloredcoinjs-lib').color.ColorDefinitionManager
-
 var AssetDefinition = require('./AssetDefinition')
-var AssetDefinitionStorage = require('../storage').AssetDefinitionStorage
 
 
 /**

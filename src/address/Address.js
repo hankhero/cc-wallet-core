@@ -1,5 +1,4 @@
 var assert = require('assert')
-var _ = require('lodash')
 
 var bitcoin = require('bitcoinjs-lib')
 var ECPubKey = bitcoin.ECPubKey

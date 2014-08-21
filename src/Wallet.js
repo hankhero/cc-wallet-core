@@ -14,24 +14,23 @@ var storage = require('./storage')
 /**
  * @class Wallet
  *
- * @param {Object} data
- * @param {Buffer|string} data.masterKey Seed for hierarchical deterministic wallet
- * @param {boolean} [data.testnet=false]
+ * @param {Object} opts
+ * @param {(Buffer|string)} opts.masterKey Seed for hierarchical deterministic wallet
+ * @param {boolean} [opts.testnet=false]
+ * @param {string} [opts.blockchain='BlockrIOAPI'] Now available only BlockrIOAPI
  */
-function Wallet(data) {
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(Buffer.isBuffer(data.masterKey) || _.isString(data.masterKey),
-    'Expected Buffer|string data.masterKey, got ' + data.masterKey)
-  data.testnet = _.isUndefined(data.testnet) ? false : data.testnet
-  assert(_.isBoolean(data.testnet), 'Expected boolean data.testnet, got ' + data.testnet)
-
+function Wallet(opts) {
+  opts = _.extend({
+    testnet: false,
+    blockchain: 'BlockrIOAPI'
+  }, opts)
 
   this.aStorage = new storage.AddressStorage()
   this.aManager = new AddressManager(this.aStorage)
-  this.network = data.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
-  this.aManager.setMasterKeyFromSeed(data.masterKey, this.network)
+  this.network = opts.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+  this.aManager.setMasterKeyFromSeed(opts.masterKey, this.network)
 
-  this.blockchain = new cclib.blockchain.BlockrIOAPI({ testnet: data.testnet })
+  this.blockchain = new cclib.blockchain[opts.blockchain]({ testnet: opts.testnet })
 
   this.cDataStorage = new cclib.storage.ColorDataStorage()
   this.cData = new cclib.color.ColorData(this.cDataStorage, this.blockchain)
@@ -76,7 +75,7 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 }
 
 /**
- * Param asColor in address method not good solution
+ * Param asColorAddress in address method not good solution
  * But sometimes we need bitcoin address for ColorDefintion,
  *  such as in OperationalTx.getChangeAddress
  */

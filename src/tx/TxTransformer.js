@@ -126,8 +126,6 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
  * @param {TxTranformer~transformComposedTx} cb
  */
 TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb) {
-  var self = this
-
   Q.fcall(function() {
     if (['signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform composedTx')
