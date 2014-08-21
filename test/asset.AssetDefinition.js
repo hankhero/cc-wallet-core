@@ -45,17 +45,23 @@ describe('asset.AssetDefinition', function() {
 
   describe('parseValue', function() {
     var fixtures = [
-      { description: 'return NaN', value: 'a.00', expect: NaN },
-      { description: '0 satoshi', value: '0.00000000', expect: 0 },
-      { description: '1 satoshi', value: '0.00000001', expect: 1 },
-      { description: '1 btc minus 1 satoshi', value: '0.99999999', expect: 99999999 },
-      { description: '1 btc', value: '1.00000000', expect: 100000000 },
-      { description: '1 btc plus 1 satoshi', value: '1.00000001', expect: 100000001 },
-      { description: '5 btc plus 345 mbtc', value: '5.34500000', expect: 534500000 }
+      { value: 'a.00',       unit: 100000000, expect: NaN },
+      { value: '0.00000000', unit: 100000000, expect: 0 },
+      { value: '0.00000001', unit: 100000000, expect: 1 },
+      { value: '0.2',        unit: 100000000, expect: 20000000 },
+      { value: '0.99999999', unit: 100000000, expect: 99999999 },
+      { value: '1',          unit: 100000000, expect: 100000000 },
+      { value: '1.00000',    unit: 100000000, expect: 100000000 },
+      { value: '1.00000001', unit: 100000000, expect: 100000001 },
+      { value: '5.345000',   unit: 100000000, expect: 534500000 },
+      { value: '1.1',        unit: 1,         expect: 1 },
+      { value: '1.1',        unit: 10,        expect: 11 },
+      { value: '1.1',        unit: 100,       expect: 110 }
     ]
 
-    fixtures.forEach(function(fixture) {
-      it(fixture.description, function() {
+    fixtures.forEach(function(fixture, index) {
+      it('#' + index, function() {
+        assetdef.unit = fixture.unit
         expect(assetdef.parseValue(fixture.value)).to.deep.equal(fixture.expect)
       })
     })
