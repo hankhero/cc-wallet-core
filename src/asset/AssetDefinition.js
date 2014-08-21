@@ -70,12 +70,8 @@ AssetDefinition.prototype.getColorSet = function() {
 AssetDefinition.prototype.parseValue = function(portion) {
   assert(_.isString(portion), 'Expected string portion, got ' + portion)
 
-  var items = portion.split('.')
-  var value = parseInt(items[0]) * this.unit
-  if (!_.isUndefined(items[1]))
-    value += parseInt(items[1])
-
-  return value
+  var value = parseFloat(portion);
+  return Math.round(value * this.unit);
 }
 
 /**
