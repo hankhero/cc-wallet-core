@@ -37,7 +37,7 @@ function BlockrIo(opts) {
     testnet: false,
     requestTimeout: 5*1000,
     maxCacheSize: 500,
-    maxCacheAge: 10*100
+    maxCacheAge: 10*1000
   }, opts)
 
 
