@@ -1,15 +1,15 @@
 var expect = require('chai').expect
 
-var storage = require('../src/storage')
-var SyncStorage = require('../src/storage/SyncStorage')
+var SyncStorage = require('../src/SyncStorage')
+var AssetDefinitionStorage = require('../src/asset').AssetDefinitionStorage
 
 
-describe('storage.AssetDefinitionStorage', function() {
-  var adStorage
+describe('asset.AssetDefinitionStorage', function() {
+  var storage
 
   beforeEach(function() {
-    adStorage = new storage.AssetDefinitionStorage()
-    adStorage.add({
+    storage = new AssetDefinitionStorage()
+    storage.add({
       ids: ['111', '123'],
       monikers: ['gold'],
       colorSchemes: ['scheme1', 'scheme2'],
@@ -18,12 +18,12 @@ describe('storage.AssetDefinitionStorage', function() {
   })
 
   afterEach(function() {
-    adStorage.clear()
+    storage.clear()
   })
 
   it('inherits SyncStorage', function() {
-    expect(adStorage).to.be.instanceof(SyncStorage)
-    expect(adStorage).to.be.instanceof(storage.AssetDefinitionStorage)
+    expect(storage).to.be.instanceof(SyncStorage)
+    expect(storage).to.be.instanceof(AssetDefinitionStorage)
   })
 
   it('add throw error, id already exist', function() {
@@ -33,7 +33,7 @@ describe('storage.AssetDefinitionStorage', function() {
       colorSchemes: [''],
       unit: 1
     }
-    var fn = function() { adStorage.add(data) }
+    var fn = function() { storage.add(data) }
     expect(fn).to.throw(Error)
   })
 
@@ -44,22 +44,22 @@ describe('storage.AssetDefinitionStorage', function() {
       colorSchemes: [''],
       unit: 1
     }
-    var fn = function() { adStorage.add(data) }
+    var fn = function() { storage.add(data) }
     expect(fn).to.throw(Error)
   })
 
   it('getByMoniker return null', function() {
-    var result = adStorage.getByMoniker('bitcoin')
+    var result = storage.getByMoniker('bitcoin')
     expect(result).to.be.null
   })
 
   it('getByMoniker return object', function() {
-    var result = adStorage.getByMoniker('gold')
+    var result = storage.getByMoniker('gold')
     expect(result).to.be.instanceof(Object)
   })
 
   it('getAll', function() {
-    var result = adStorage.getAll()
+    var result = storage.getAll()
     expect(result).to.have.length(1)
     expect(result[0]).to.be.instanceof(Object)
   })

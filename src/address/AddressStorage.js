@@ -4,7 +4,7 @@ var _ = require('lodash')
 var bitcoin = require('bitcoinjs-lib')
 var HDNode = bitcoin.HDNode
 
-var SyncStorage = require('./SyncStorage')
+var SyncStorage = require('../SyncStorage')
 
 
 /**

@@ -15,7 +15,7 @@ function OperationalTx(wallet, assetdef) {
   this.targets = []
 }
 
-util.inherits(OperationalTx, cclib.tx.OperationalTx)
+util.inherits(OperationalTx, cclib.OperationalTx)
 
 /**
  * Add ColorTarget to current tx
@@ -70,14 +70,14 @@ OperationalTx.prototype.getRequiredFee = function(txSize) {
   var baseFee = 10000
   var feeValue = Math.ceil((txSize * baseFee) / 1000)
 
-  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), feeValue)
+  return new cclib.ColorValue(new cclib.UncoloredColorDefinition(), feeValue)
 }
 
 /**
  * @return {ColorValue}
  */
 OperationalTx.prototype.getDustThreshold = function() {
-  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), 5500)
+  return new cclib.ColorValue(new cclib.UncoloredColorDefinition(), 5500)
 }
 
 /**
@@ -112,7 +112,7 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
   }).then(function(coinList) {
     var coins = coinList.getCoins()
 
-    var selectedCoinsColorValue = new cclib.color.ColorValue(colordef, 0)
+    var selectedCoinsColorValue = new cclib.ColorValue(colordef, 0)
     var selectedCoins = []
 
     var requiredSum = colorValue.clone()

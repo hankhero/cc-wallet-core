@@ -2,19 +2,17 @@ var expect = require('chai').expect
 
 var cclib = require('coloredcoinjs-lib')
 
-var AssetDefinition = require('../src/asset').AssetDefinition
-var AssetDefinitionManager = require('../src/asset').AssetDefinitionManager
-var storage = require('../src/storage')
+var asset = require('../src/asset')
 
 
 describe('asset.AssetDefinitionManager', function() {
   var cdStorage, cdManager, adStorage, adManager
 
   beforeEach(function() {
-    cdStorage = new cclib.storage.ColorDefinitionStorage()
-    cdManager = new cclib.color.ColorDefinitionManager(cdStorage)
-    adStorage = new storage.AssetDefinitionStorage()
-    adManager = new AssetDefinitionManager(cdManager, adStorage)
+    cdStorage = new cclib.ColorDefinitionStorage()
+    cdManager = new cclib.ColorDefinitionManager(cdStorage)
+    adStorage = new asset.AssetDefinitionStorage()
+    adManager = new asset.AssetDefinitionManager(cdManager, adStorage)
   })
 
   afterEach(function() {
@@ -23,16 +21,16 @@ describe('asset.AssetDefinitionManager', function() {
   })
 
   it('create bitcoin AssetDefinition in constructor', function() {
-    var assets = adManager.getAllAssets()
-    expect(assets).to.have.length(1)
-    expect(assets[0].getMonikers()).to.deep.equal(['bitcoin'])
+    var assetdefs = adManager.getAllAssets()
+    expect(assetdefs).to.have.length(1)
+    expect(assetdefs[0].getMonikers()).to.deep.equal(['bitcoin'])
   })
 
   it('bitcoin AssetDefinition alredy exists', function() {
-    adManager = new AssetDefinitionManager(cdManager, adStorage)
-    var assets = adManager.getAllAssets()
-    expect(assets).to.have.length(1)
-    expect(assets[0].getMonikers()).to.deep.equal(['bitcoin'])
+    adManager = new asset.AssetDefinitionManager(cdManager, adStorage)
+    var assetdefs = adManager.getAllAssets()
+    expect(assetdefs).to.have.length(1)
+    expect(assetdefs[0].getMonikers()).to.deep.equal(['bitcoin'])
   })
 
   it('createAssetDefinition/getAllAssets', function() {
@@ -41,17 +39,17 @@ describe('asset.AssetDefinitionManager', function() {
       colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
       unit: 10000
     })
-    var assets = adManager.getAllAssets()
-    expect(assets).to.have.length(2)
+    var assetdefs = adManager.getAllAssets()
+    expect(assetdefs).to.have.length(2)
   })
 
   it('getByMoniker return AssetDefinition', function() {
-    var asset = adManager.getByMoniker('bitcoin')
-    expect(asset).to.be.instanceof(AssetDefinition)
+    var assetdef = adManager.getByMoniker('bitcoin')
+    expect(assetdef).to.be.instanceof(asset.AssetDefinition)
   })
 
   it('getByMoniker return null', function() {
-    var asset = adManager.getByMoniker('bronze')
-    expect(asset).to.be.null
+    var assetdef = adManager.getByMoniker('bronze')
+    expect(assetdef).to.be.null
   })
 })

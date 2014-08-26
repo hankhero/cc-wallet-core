@@ -3,7 +3,6 @@ var expect = require('chai').expect
 var cclib = require('coloredcoinjs-lib')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
-var storage = require('../src/storage')
 
 
 describe('asset.AssetDefinition', function() {
@@ -15,8 +14,8 @@ describe('asset.AssetDefinition', function() {
   }
 
   beforeEach(function() {
-    cdStorage = new cclib.storage.ColorDefinitionStorage()
-    cdManager = new cclib.color.ColorDefinitionManager(cdStorage)
+    cdStorage = new cclib.ColorDefinitionStorage()
+    cdManager = new cclib.ColorDefinitionManager(cdStorage)
     assetdef = new AssetDefinition(cdManager, bitcoinData)
     cdStorage.clear()
   })
@@ -40,7 +39,7 @@ describe('asset.AssetDefinition', function() {
   })
 
   it('getColorSet', function() {
-    expect(assetdef.getColorSet()).to.be.instanceof(cclib.color.ColorSet)
+    expect(assetdef.getColorSet()).to.be.instanceof(cclib.ColorSet)
   })
 
   describe('parseValue', function() {

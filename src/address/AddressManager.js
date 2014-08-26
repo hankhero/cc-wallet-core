@@ -9,7 +9,6 @@ var networks = Object.keys(bitcoin.networks).map(function(key) { return bitcoin.
 
 var Address = require('./Address')
 var AssetDefinition = require('../asset').AssetDefinition
-var storage = require('../storage')
 
 
 function isHexString(s) {
@@ -56,12 +55,10 @@ var EPOBC_CHAIN = 826130763
 /**
  * @class AddressManager
  *
- * @param {storage.AddressStore} amStorage
+ * @param {storage.AddressStorage} storage
  */
-function AddressManager(amStorage) {
-  assert(amStorage instanceof storage.AddressStorage, 'Expected AddressStore amStorage, got ' + amStorage)
-
-  this.amStorage = amStorage
+function AddressManager(storage) {
+  this.storage = storage
 
   this.privKeyCache = LRU()
 }
@@ -94,7 +91,7 @@ AddressManager.prototype.setMasterKeyFromSeed = function(seed, network) {
 AddressManager.prototype.setMasterKey = function(masterKey) {
   HDNode.fromBase58(masterKey) // Check masterKey
 
-  this.amStorage.setMasterKey(masterKey)
+  this.storage.setMasterKey(masterKey)
   this.privKeyCache.reset()
 }
 
@@ -105,7 +102,7 @@ AddressManager.prototype.setMasterKey = function(masterKey) {
  * @throws {Error} If masterKey not defined
  */
 AddressManager.prototype.getMasterKey = function() {
-  var masterKey = this.amStorage.getMasterKey()
+  var masterKey = this.storage.getMasterKey()
   if (masterKey === null)
     throw new Error('call setMasterKey first')
 
@@ -151,7 +148,7 @@ AddressManager.prototype.getNewAddress = function(definition) {
   var chain = this.selectChain(definition)
 
   var newIndex = 0
-  this.amStorage.getPubKeys(chain).forEach(function(record) {
+  this.storage.getPubKeys(chain).forEach(function(record) {
     if (record.index >= newIndex)
       newIndex = record.index + 1
   })
@@ -159,7 +156,7 @@ AddressManager.prototype.getNewAddress = function(definition) {
   var masterKey = this.getMasterKey()
   var newNode = derive(HDNode.fromBase58(masterKey), 0, chain, newIndex)
 
-  this.amStorage.addPubKey({
+  this.storage.addPubKey({
     chain: chain,
     index: newIndex,
     pubKey: newNode.pubKey.toHex()
@@ -204,7 +201,7 @@ AddressManager.prototype.getAllAddresses = function(definition) {
   if (!_.isUndefined(definition))
     chain = this.selectChain(definition)
 
-  var pubKeys = this.amStorage.getPubKeys(chain).map(record2address)
+  var pubKeys = this.storage.getPubKeys(chain).map(record2address)
 
   return pubKeys
 }
@@ -222,7 +219,7 @@ AddressManager.prototype.getPrivKeyByAddress = function(address) {
   var masterKey = this.getMasterKey()
   var network = HDNode.fromBase58(masterKey).network
 
-  var record = this.amStorage.getPubKeys().filter(function(record) {
+  var record = this.storage.getPubKeys().filter(function(record) {
     var recordAddress = new Address(ECPubKey.fromHex(record.pubKey), network)
     return recordAddress.getAddress() === address
   })

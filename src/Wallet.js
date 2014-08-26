@@ -5,11 +5,17 @@ var Q = require('q')
 var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
 
-var AddressManager = require('./address').AddressManager
+var address = require('./address')
 var asset = require('./asset')
+var blockchain = require('./blockchain')
+var coin = require('./coin')
 var tx = require('./tx')
-var storage = require('./storage')
 
+
+/**
+ * @callback Wallet~errorCallback
+ * @param {?Error} error
+ */
 
 /**
  * @class Wallet
@@ -17,33 +23,58 @@ var storage = require('./storage')
  * @param {Object} opts
  * @param {(Buffer|string)} opts.masterKey Seed for hierarchical deterministic wallet
  * @param {boolean} [opts.testnet=false]
- * @param {string} [opts.blockchain='BlockrIOAPI'] Now available only BlockrIOAPI
+ * @param {string} [opts.blockchain='BlockrIo'] Now available only BlockrIo
  */
 function Wallet(opts) {
   opts = _.extend({
     testnet: false,
-    blockchain: 'BlockrIOAPI'
+    blockchain: 'BlockrIo'
   }, opts)
 
-  this.aStorage = new storage.AddressStorage()
-  this.aManager = new AddressManager(this.aStorage)
   this.network = opts.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
+
+
+  this.blockchain = new blockchain[opts.blockchain]({ testnet: opts.testnet })
+
+  this.cdStorage = new cclib.ColorDefinitionStorage()
+  this.cdManager = new cclib.ColorDefinitionManager(this.cdStorage)
+
+  this.cDataStorage = new cclib.ColorDataStorage()
+  this.cData = new cclib.ColorData(this.cDataStorage, this.blockchain)
+
+  this.aStorage = new address.AddressStorage()
+  this.aManager = new address.AddressManager(this.aStorage)
   this.aManager.setMasterKeyFromSeed(opts.masterKey, this.network)
 
-  this.blockchain = new cclib.blockchain[opts.blockchain]({ testnet: opts.testnet })
-
-  this.cDataStorage = new cclib.storage.ColorDataStorage()
-  this.cData = new cclib.color.ColorData(this.cDataStorage, this.blockchain)
-
-  this.cdStorage = new cclib.storage.ColorDefinitionStorage()
-  this.cdManager = new cclib.color.ColorDefinitionManager(this.cdStorage)
-
-  this.adStorage = new storage.AssetDefinitionStorage()
+  this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
   this.adManager.getAllAssets().forEach(this.getSomeAddress.bind(this))
 
+  this.coinStorage = new coin.CoinStorage()
+  this.coinManager = new coin.CoinManager(this, this.coinStorage)
+
+  this.txStorage = new tx.TxStorage()
+  this.txDb = new tx.NaiveTxDb(this.txStorage, this.coinManager, this.blockchain)
+  this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
+
   this.txTransformer = new tx.TxTransformer()
 }
+
+Wallet.prototype.getNetwork = function() { return this.network }
+
+Wallet.prototype.getBlockchain = function() { return this.blockchain }
+
+Wallet.prototype.getColorDefinitionManager = function() { return this.cdManager }
+
+Wallet.prototype.getColorData = function() { return this.cData }
+
+Wallet.prototype.getAddressManager = function() { return this.adManager }
+
+Wallet.prototype.getCoinManager = function() { return this.coinManager }
+
+Wallet.prototype.getTxDb = function() { return this.txDb }
+
+Wallet.prototype.getTxFetcher = function() { return this.txFetcher }
 
 /**
  * @param {Object} data
@@ -174,20 +205,38 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
 }
 
 /**
+ * @param {Wallet~errorCallback} cb
+ */
+Wallet.prototype.scanAllAddresses = function(cb) {
+  var self = this
+
+  var assetdefs = self.getAllAssetDefinitions()
+  var addresses = _.flatten(
+    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+
+  this.getTxFetcher().scanAddressesUnspent(addresses, cb)
+}
+
+/**
+ * @param {Wallet~errorCallback} cb
+ */
+Wallet.prototype.fullScanAllAddresses = function(cb) {
+  var self = this
+
+  var assetdefs = self.getAllAssetDefinitions()
+  var addresses = _.flatten(
+    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+
+  this.getTxFetcher().fullScanAddresses(addresses, cb)
+}
+
+/**
  * Return new CoinQuery for request confirmed/unconfirmed coins, balance ...
  *
  * @return {CoinQuery}
  */
 Wallet.prototype.getCoinQuery = function() {
-  var addresses = this.aManager.getAllAddresses()
-  addresses = addresses.map(function(address) { return address.getAddress() })
-
-  return new cclib.coin.CoinQuery({
-    addresses: addresses,
-    blockchain: this.blockchain,
-    colorData: this.cData,
-    colorDefinitionManager: this.cdManager
-  })
+  return new coin.CoinQuery(this)
 }
 
 /**
@@ -198,18 +247,6 @@ Wallet.prototype.getCoinQuery = function() {
  * @param {function} cb
  */
 Wallet.prototype._getBalance = function(assetdef, opts, cb) {
-  assert(assetdef instanceof asset.AssetDefinition,
-    'Expected AssetDefinition assetdef, got ' + assetdef)
-  assert(_.isObject(opts), 'Expected Object opts, got ' + opts)
-  opts = _.extend({
-    onlyConfirmed: false,
-    onlyUnconfirmed: false
-  }, opts)
-  assert(_.isBoolean(opts.onlyConfirmed), 'Expected boolean opts.onlyConfirmed, got ' + opts.onlyConfirmed)
-  assert(_.isBoolean(opts.onlyUnconfirmed), 'Expected boolean opts.onlyUnconfirmed, got ' + opts.onlyUnconfirmed)
-  assert(!opts.onlyConfirmed || !opts.onlyUnconfirmed, 'opts.onlyConfirmed and opts.onlyUnconfirmed both is true')
-  assert(_.isFunction(cb), 'Expected function cb, got ' + cb)
-
   var self = this
 
   Q.fcall(function() {
@@ -231,7 +268,7 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
     if (colorValues.length === 0)
       return 0
 
-    return cclib.color.ColorValue.sum(colorValues).getValue()
+    return cclib.ColorValue.sum(colorValues).getValue()
 
   }).done(function(balance) { cb(null, balance) }, function(error) { cb(error) })
 }
@@ -301,10 +338,12 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
  * Drop all data from storage's
  */
 Wallet.prototype.clearStorage = function() {
-  this.aStorage.clear()
-  this.cDataStorage.clear()
   this.cdStorage.clear()
+  this.cDataStorage.clear()
+  this.aStorage.clear()
   this.adStorage.clear()
+  this.coinStorage.clear()
+  this.txStorage.clear()
 }
 
 

@@ -5,13 +5,13 @@ var AssetDefinition = require('./AssetDefinition')
  * @class AssetDefinitionManager
  *
  * @param {coloredcoinjs-lib.color.ColorDefinitionManager} cdManager
- * @param {AssetDefinitionStorage} adStorage
+ * @param {AssetDefinitionStorage} storage
  */
-function AssetDefinitionManager(cdManager, adStorage) {
+function AssetDefinitionManager(cdManager, storage) {
   this.cdManager = cdManager
-  this.adStorage = adStorage
+  this.storage = storage
 
-  if (this.adStorage.getByMoniker('bitcoin') === null) {
+  if (this.storage.getByMoniker('bitcoin') === null) {
     var uncoloredColorDefinition = cdManager.getUncolored()
 
     this.createAssetDefinition({
@@ -33,7 +33,7 @@ function AssetDefinitionManager(cdManager, adStorage) {
 AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
   var assetdef = new AssetDefinition(this.cdManager, data)
 
-  this.adStorage.add({
+  this.storage.add({
     id: assetdef.getId(),
     monikers: assetdef.getMonikers(),
     colorSchemes: assetdef.getColorSet().getColorSchemes(),
@@ -48,7 +48,7 @@ AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
  * @return {?AssetDefinition}
  */
 AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
-  var result = this.adStorage.getByMoniker(moniker)
+  var result = this.storage.getByMoniker(moniker)
 
   if (result !== null)
     result = new AssetDefinition(this.cdManager, result)
@@ -60,7 +60,7 @@ AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
  * @return {AssetDefinition[]}
  */
 AssetDefinitionManager.prototype.getAllAssets = function() {
-  var assetdefs = this.adStorage.getAll().map(function(record) {
+  var assetdefs = this.storage.getAll().map(function(record) {
     return new AssetDefinition(this.cdManager, record)
   }.bind(this))
 
