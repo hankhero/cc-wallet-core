@@ -16,10 +16,13 @@
   },
   "dependencies": {
     "bitcoinjs-lib": "1.0.2",
+    "browser-request": "0.3.2",
     "coloredcoinjs-lib": "git://github.com/fanatid/coloredcoinjs-lib.git",
     "lodash": "2.4.1",
     "lru-cache": "2.5.0",
-    "q": "1.0.1"
+    "q": "1.0.1",
+    "querystring": "0.2.0",
+    "request": "2.40.0"
   },
   "devDependencies": {
     "chai": "1.9.1",
@@ -33,5 +36,8 @@
     "grunt-mocha-istanbul": "2.0.0",
     "grunt-mocha-test": "0.11.0",
     "mocha": "1.21.4"
+  },
+  "browser": {
+    "request": "browser-request"
   }
 }

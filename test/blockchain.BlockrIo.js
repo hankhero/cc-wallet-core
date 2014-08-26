@@ -29,25 +29,7 @@ describe('blockchain.BlockrIo', function() {
   })
 
   describe('getBlockCount', function() {
-    it('request return error', function(done) {
-      bs.request = function(_, cb) { cb('error.request') }
-      bs.getBlockCount(function(error, response) {
-        expect(error).to.equal('error.request')
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
-    it('blockCount in response not number', function(done) {
-      bs.request = function(_, cb) { cb(null, {}) }
-      bs.getBlockCount(function(error, response) {
-        expect(error).to.be.instanceof(Error)
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
-    it('good number', function(done) {
+    it('return block count', function(done) {
       bs.getBlockCount(function(error, response) {
         expect(error).to.be.null
         expect(response).to.be.a('number')
@@ -58,24 +40,6 @@ describe('blockchain.BlockrIo', function() {
   })
 
   describe('getTx', function() {
-    it('request return error', function(done) {
-      bs.request = function(_, cb) { cb('error.request') }
-      bs.getTx('0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098', function(error, response) {
-        expect(error).to.equal('error.request')
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
-    it('Transaction.fromHex throw error', function(done) {
-      bs.request = function(_, cb) { cb(null, {tx: {hex: null}}) }
-      bs.getTx('0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098', function(error, tx) {
-        expect(error).to.be.instanceof(Error)
-        expect(tx).to.be.undefined
-        done()
-      })
-    })
-
     it('from mainnet', function(done) {
       bs.getTx('0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098', function(error, tx) {
         expect(error).to.be.null
@@ -101,76 +65,75 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
     })
   })
 
-  describe('sendTx', function() {
+  function sendCoins(done) {
     var hdnode = bitcoin.HDNode.fromSeedHex('00000000000000000000000000000000', bitcoin.networks.testnet)
     // address is mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
     var address = hdnode.pubKey.getAddress(bitcoin.networks.testnet).toBase58Check()
 
-    it('send coins', function(done) {
-      bs = new blockchain.BlockrIo({ testnet: true })
-      bs.getUTXO(address, function(error, response) {
+    bs = new blockchain.BlockrIo({ testnet: true })
+    bs.getUTXO(address, function(error, response) {
+      expect(error).to.be.null
+      expect(response).to.be.instanceof(Array).with.to.have.length.least(1)
+      var totalValue = response.reduce(function(a, b) { return { value: a.value+b.value } }).value
+      expect(totalValue).to.be.at.least(10000)
+
+      // send totalValue minus 0.1 mBTC to mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
+      var tx = new bitcoin.Transaction()
+      response.forEach(function(unspent) {
+        tx.addInput(unspent.txId, unspent.outIndex)
+      })
+      tx.addOutput(address, totalValue - 10000)
+      tx.ins.forEach(function(input, index) {
+        tx.sign(index, hdnode.privKey)
+      })
+
+      bs.sendTx(tx, function(error, response) {
         expect(error).to.be.null
-        expect(response).to.be.instanceof(Array).with.to.have.length.least(1)
-        var totalValue = response.reduce(function(a, b) { return { value: a.value+b.value } }).value
-        expect(totalValue).to.be.at.least(10000)
+        expect(response).to.be.a('string').with.to.have.length(64)
+        done(response)
+      })
+    })
+  }
 
-        // send totalValue minus 0.1 mBTC to mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
-        var tx = new bitcoin.Transaction()
-        response.forEach(function(unspent) {
-          tx.addInput(unspent.txId, unspent.outIndex)
-        })
-        tx.addOutput(address, totalValue - 10000)
-        tx.ins.forEach(function(input, index) {
-          tx.sign(index, hdnode.privKey)
-        })
-
-        bs.sendTx(tx, function(error, response) {
+  describe('getTxBlockHash', function() {
+    it('return null for unconfirmed tx', function(done) {
+      sendCoins(function(txId) {
+        bs.getTxBlockHash(txId, function(error, response) {
           expect(error).to.be.null
-          expect(response).to.be.a('string').with.to.have.length(64)
+          expect(response).to.be.null
           done()
         })
       })
     })
+
+    it('return blockhash', function(done) {
+      bs.getTxBlockHash('0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098', function(error, response) {
+        expect(error).to.be.null
+        expect(response).to.equal('00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048')
+        done()
+      })
+    })
+  })
+
+  describe('getBlockHeight', function() {
+    it('return block height', function(done) {
+      bs.getBlockHeight('00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048', function(error, response) {
+        expect(error).to.be.null
+        expect(response).to.equal(1)
+        done()
+      })
+    })
+  })
+
+  describe('sendTx', function() {
+    it('send coins', function(done) {
+      sendCoins(function() { done() })
+    })
   })
 
   describe('getUTXO', function() {
-    var address0 = '198aMn6ZYAczwrE5NvNTUMyJ5qkfy4g3Hi'
-
-    it('request return error', function(done) {
-      bs.request = function(_, cb) { cb('error.request') }
-      bs.getUTXO(address0, function(error, response) {
-        expect(error).to.equal('error.request')
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
-    it('response address not matched', function(done) {
-      bs.request = function(_, cb) { cb(null, {}) }
-      bs.getUTXO(address0, function(error, response) {
-        expect(error).to.be.instanceof(Error)
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
-    it('bad txOut value', function(done) {
-      var unspent = [{
-        tx: '49d17f0b622d2bf9250899357cf035d39dfec1f9667c045232b8eb8c7857db8b',
-        amount: 'x.00',
-        n: 0,
-        confirmations: 1
-      }]
-      bs.request = function(_, cb) { cb(null, { address: address0, unspent: unspent }) }
-      bs.getUTXO(address0, function(error, response) {
-        expect(error).to.be.instanceof(TypeError)
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
     it('right amount from mainnet', function(done) {
-      bs.getUTXO(address0, function(error, response) {
+      bs.getUTXO('198aMn6ZYAczwrE5NvNTUMyJ5qkfy4g3Hi', function(error, response) {
         expect(error).to.be.null
         var values = response.map(function(utxo) { return utxo.value })
         var totalValue = values.reduce(function(acc, current) { return acc + current }, 0)
@@ -181,21 +144,12 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
   })
 
   describe('getHistory', function() {
-    it('address not matched', function(done) {
-      bs.request = function(_, cb) { cb(null, {}) }
-      bs.getHistory('1BjQwkBPE1cbpQCY4u2nt7D6cFvJscwPJg', function(error, response) {
-        expect(error).to.be.instanceof(Error)
-        expect(response).to.be.undefined
-        done()
-      })
-    })
-
     it('list from mainnet', function(done) {
       bs.getHistory('1BjQwkBPE1cbpQCY4u2nt7D6cFvJscwPJg', function(error, response) {
         expect(error).to.be.null
-        expect(response[0].txId).to.equal('77e491c32ec4cd877a26a2d445f28eaa34df51c9c45c1f27c2aea6e7544ec01e')
+        expect(response[0].txId).to.equal('2e251defb56108a6c7def2fc6937d113435e7d39e1d518ca0a4ab66fa38d098b')
         expect(response[0].confirmations).to.be.at.least(0)
-        expect(response[1].txId).to.equal('2e251defb56108a6c7def2fc6937d113435e7d39e1d518ca0a4ab66fa38d098b')
+        expect(response[1].txId).to.equal('77e491c32ec4cd877a26a2d445f28eaa34df51c9c45c1f27c2aea6e7544ec01e')
         expect(response[1].confirmations).to.be.at.least(0)
         done()
       })

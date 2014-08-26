@@ -35,6 +35,38 @@ BlockchainBase.prototype.getTx = function() {
 }
 
 /**
+ * @callback BlockchainBase~getTxBlockHash
+ * @param {?Error} error
+ * @param {Transaction} tx
+ */
+
+/**
+ * Get transaction by txId
+ * @abstract
+ * @param {string} txId
+ * @param {BlockchainBase~getTxBlockHash} cb
+ */
+BlockchainBase.prototype.getTxBlockHash = function() {
+  throw new Error('getTxBlockHash not implemented')
+}
+
+/**
+ * @callback BlockchainBase~getBlockHeight
+ * @param {?Error} error
+ * @param {Transaction} tx
+ */
+
+/**
+ * Get transaction by txId
+ * @abstract
+ * @param {string} txId
+ * @param {BlockchainBase~getBlockHeight} cb
+ */
+BlockchainBase.prototype.getBlockHeight = function() {
+  throw new Error('getBlockHeight not implemented')
+}
+
+/**
  * @callback BlockchainBase~sendTx
  * @param {?Error} error
  * @param {string} txId
@@ -97,7 +129,7 @@ BlockchainBase.prototype.getUTXO = function() {
  * @param {BlockchainBase~getHistory} cb
  */
 BlockchainBase.prototype.getHistory = function() {
-  throw new Error('getUTXO not implemented')
+  throw new Error('getHistory not implemented')
 }
 
 

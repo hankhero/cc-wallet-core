@@ -1,23 +1,15 @@
 var assert = require('assert')
-var http = require('http')
 var inherits = require('util').inherits
 
-var _ = require('lodash')
-var Q = require('q')
-var LRU = require('lru-cache')
-var querystring = require('querystring')
 var cclib = require('coloredcoinjs-lib')
+var _ = require('lodash')
+var LRU = require('lru-cache')
+var Q = require('q')
+var qs = require('querystring')
+var request = require('request')
 
 var BlockchainBase = require('./BlockchainBase')
 
-
-function isHexString(s) {
-  var set = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
-
-  return (_.isString(s) &&
-          s.length % 2 === 0 &&
-          s.toLowerCase().split('').every(function(x) { return set.indexOf(x) !== -1 }))
-}
 
 /**
  * BlockchainState that uses [Blockr.io API]{@link http://btc.blockr.io/documentation/api}
@@ -50,7 +42,7 @@ function BlockrIo(opts) {
     maxAge: opts.maxCacheAge
   })
 
-  this.requestTimeout = opts.requestTimeout
+  this.requestTimeout = opts.requestTimeout + 25
   this.requestPathCache = LRU({ maxAge: this.requestTimeout })
 }
 
@@ -90,96 +82,13 @@ BlockrIo.prototype.request = function(path, data, cb) {
     return
   }
 
-  /** request */
-  Q.Promise(function(resolve, reject) {
-    self.requestPathCache.set(path, true)
-    var requestOpts = {
-      scheme: 'http',
-      host: self.isTestnet ? 'tbtc.blockr.io' : 'btc.blockr.io',
-      port: 80,
-      path: path,
-      method: data === null ? 'GET' : 'POST',
-      withCredentials: false
-    }
-    var request = http.request(requestOpts)
-
-    request.on('response', function(response) {
-      var buf = ''
-
-      response.on('data', function(data) {
-        buf += data
-      })
-
-      response.on('end', function() {
-        var result
-
-        try {
-          result = JSON.parse(buf)
-          if (result.status !== 'success') {
-            if (result.message)
-              throw new Error(result.message)
-            throw new Error('Bad data')
-          }
-
-        } catch (error) {
-          reject(error)
-
-        }
-
-        self.cache.set(path, result.data)
-        resolve(result.data)
-      })
-
-      response.on('error', reject)
-    })
-
-    request.on('error', reject)
-
-    Q.delay(self.requestTimeout).then(function() {
-      /*
-       * See: https://github.com/substack/http-browserify/issues/49
-       *
-       * https://github.com/substack/http-browserify/blob/master/lib/request.js##L95
-       * In http-browserify instead request.abort() must be called request.destroy() ?
-       */
-      if (request.abort)
-        request.abort()
-      else
-        request.destroy()
-
-      reject(new Error('Request timeout'))
-    })
-
-    if (data !== null)
-      request.write(querystring.encode(data))
-
-    request.end()
-
-  }).done(function(response) { cb(null, response) }, function(error) { cb(error) })
-
-
-  /** With request package, but not for browser '( */
-/*
-  / ** check in cache * /
-  var cachedValue = self.cache.get(path)
-  if (!_.isUndefined(cachedValue)) {
-    process.nextTick(function() { cb(null, cachedValue) })
-    return
-  }
-
-  / ** check already requested * /
-  if (!_.isUndefined(self.requestPathCache.get(path))) {
-    setTimeout(function() { self.request(path, data, cb) }, 25)
-    return
-  }
-
-  / ** make request * /
+  /** make request */
   self.requestPathCache.set(path, true)
   var host = self.isTestnet ? 'tbtc.blockr.io' : 'btc.blockr.io'
   var requestOpts = {
-    uri: 'http://' + host + path,
     method: data === null ? 'GET' : 'POST',
-    body: querystring.encode(data),
+    uri: 'http://' + host + path,
+    body: qs.encode(data),
     timeout: self.requestTimeout
   }
 
@@ -195,7 +104,6 @@ BlockrIo.prototype.request = function(path, data, cb) {
     return result.data
 
   }).done(function(response) { cb(null, response) }, function(error) { cb(error) })
-*/
 }
 
 /**
@@ -257,6 +165,9 @@ BlockrIo.prototype.getTx = function(txId, cb) {
  */
 BlockrIo.prototype.getTxBlockHash = function(txId, cb) {
   Q.ninvoke(this, 'request', '/api/v1/tx/raw/' + txId).then(function(response) {
+    if (_.isUndefined(response.tx.blockhash))
+      return null
+
     return response.tx.blockhash
 
   }).done(function(blockHash) { cb(null, blockHash) }, function(error) { cb(error) })
@@ -274,7 +185,7 @@ BlockrIo.prototype.getTxBlockHash = function(txId, cb) {
  */
 BlockrIo.prototype.getBlockHeight = function(blockHash, cb) {
   Q.ninvoke(this, 'request', '/api/v1/block/info/' + blockHash).then(function(response) {
-    return parseInt(response.nb)
+    return response.nb
 
   }).done(function(height) { cb(null, height) }, function(error) { cb(error) })
 }
@@ -348,29 +259,18 @@ BlockrIo.prototype.getUTXO = function(address, cb) {
     return response.unspent
 
   }).then(function(coins) {
-    var utxo = coins.map(function(coin) {
-      assert(isHexString(coin.tx), 'Expected hex string tx, got ' + coin.tx)
-      assert(_.isNumber(coin.n), 'Expected number n, got ' + coin.n)
-      assert(_.isString(coin.amount), 'Expected string amount, got ' + coin.amount)
-      assert(_.isNumber(coin.confirmations), 'Expected number confirmations, got ' + coin.confirmations)
-
-      var value = parseAmount(coin.amount)
-      if (isNaN(value))
-        throw new TypeError('bad coin value')
-
-      // Todo: need only txId... see cc-wallet-core.TxFetcher
+    var records = coins.map(function(rawCoin) {
       return {
-        txId: coin.tx,
-        outIndex: coin.n,
-        value: value,
-        script: coin.script,
+        txId: rawCoin.tx,
+        outIndex: rawCoin.n,
+        value: parseAmount(rawCoin.amount),
+        script: rawCoin.script,
         address: address,
-        confirmed: coin.confirmations > 0,
-        confirmations: coin.confirmations
+        confirmations: rawCoin.confirmations
       }
     })
 
-    return utxo
+    return records
 
   }).done(function(utxo) { cb(null, utxo) }, function(error) { cb(error) })
 }
@@ -409,10 +309,6 @@ BlockrIo.prototype.getHistory = function(address, cb) {
   }).then(function(txs) {
     var records = txs.map(function(tx) {
       return { txId: tx.tx, confirmations: tx.confirmations }
-    })
-
-    records.sort(function(r1, r2) {
-      return r2.confirmations - r1.confirmations
     })
 
     return records

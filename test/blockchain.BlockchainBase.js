@@ -18,6 +18,14 @@ describe('blockchain.BlockchainBase', function() {
     expect(bs.getTx).to.throw(Error)
   })
 
+  it('getTxBlockHash', function() {
+    expect(bs.getTxBlockHash).to.throw(Error)
+  })
+
+  it('getBlockHeight', function() {
+    expect(bs.getBlockHeight).to.throw(Error)
+  })
+
   it('sendTx', function() {
     expect(bs.sendTx).to.throw(Error)
   })
