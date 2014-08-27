@@ -45,9 +45,9 @@ describe('Wallet', function() {
   })
 
   // Need new issued asset, this very long scanned
-  it.skip('sendCoins epobc', function(done) {
+  it('sendCoins epobc', function(done) {
     // For scan all chain color transactions need time
-    this.timeout(60000)
+    this.timeout(60*1000)
 
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
     var data = {

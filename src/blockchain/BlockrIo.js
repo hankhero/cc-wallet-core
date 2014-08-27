@@ -1,4 +1,3 @@
-var assert = require('assert')
 var inherits = require('util').inherits
 
 var cclib = require('coloredcoinjs-lib')

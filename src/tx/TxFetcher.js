@@ -1,3 +1,4 @@
+var _ = require('lodash')
 var Q = require('q')
 
 
@@ -18,11 +19,72 @@ function TxFetcher(txdb, bs) {
 }
 
 /**
- * @param {string} txId
+ * @typedef {Object} TxFetcher~_addRecords~records
+ * @property {string} txId
+ * @property {number} confirmations
+ */
+
+/**
+ * @param {TxFetcher~_addRecords~records[]} records
  * @return {Q.Promise}
  */
-TxFetcher.prototype._addTxId = function(txId) {
-  return Q.ninvoke(this.txdb, 'addTxById', txId)
+TxFetcher.prototype._addRecords = function(records) {
+  var self = this
+
+  return Q.fcall(function() {
+    var promises = _.chain(records)
+      .flatten()
+      .uniq('txId')
+      .sortBy('confirmations')
+      .reverse()
+      .map(function(record) {
+        var tx = self.txdb.getTxById(record.txId)
+        if (tx !== null)
+          return tx
+
+        return Q.ninvoke(self.bs, 'getTx', record.txId)
+      })
+      .value()
+
+    return Q.all(promises)
+
+  }).then(function(transactions) {
+    var transactionsIds = _.zipObject(transactions.map(function(tx) { return [tx.getId(), tx] }))
+    var result = []
+    var resultIds = []
+
+    function toposort(tx, topTx) {
+      if (resultIds.indexOf(tx.getId()) !== -1)
+        return
+
+      tx.ins.forEach(function(input) {
+        var inputId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
+        if (_.isUndefined(transactionsIds[inputId]))
+          return
+
+        if (transactionsIds[inputId].getId() === topTx.getId())
+          throw new Error('graph is cyclical')
+
+        toposort(transactionsIds[inputId], tx)
+      })
+
+      result.push(tx)
+      resultIds.push(tx.getId())
+    }
+
+    transactions.forEach(function(tx) { toposort(tx, tx) })
+
+    return result
+
+  }).then(function(transactions) {
+    var promise = Q()
+
+    transactions.forEach(function(tx) {
+      promise = promise.then(function() { return Q.ninvoke(self.txdb, 'addTx', tx, null) })
+    })
+
+    return promise
+  })
 }
 
 /**
@@ -30,16 +92,7 @@ TxFetcher.prototype._addTxId = function(txId) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.scanAddressUnspent = function(address, cb) {
-  var self = this
-
-  Q.ninvoke(self.bs, 'getUTXO', address).then(function(objs) {
-    var promises = objs.map(function(obj) {
-      return self._addTxId(obj.txId)
-    })
-
-    return Q.all(promises)
-
-  }).done(function() { cb(null) }, function(error) { cb(error) })
+  this.scanAddressesUnspent([address], cb)
 }
 
 /**
@@ -49,11 +102,14 @@ TxFetcher.prototype.scanAddressUnspent = function(address, cb) {
 TxFetcher.prototype.scanAddressesUnspent = function(addresses, cb) {
   var self = this
 
-  var promises = addresses.map(function(address) {
-    return Q.ninvoke(self, 'scanAddressUnspent', address)
-  })
+  Q.fcall(function() {
+    var promises = addresses.map(function(address) {
+      return Q.ninvoke(self.bs, 'getUTXO', address)
+    })
 
-  return Q.all(promises).done(function() { cb(null) }, function(error) { cb(error) })
+    return Q.all(promises)
+
+  }).then(self._addRecords.bind(self)).done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 /**
@@ -61,22 +117,7 @@ TxFetcher.prototype.scanAddressesUnspent = function(addresses, cb) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.fullScanAddress = function(address, cb) {
-  var self = this
-
-  Q.fcall(function() {
-    return Q.ninvoke(self.bs, 'getHistory', address)
-
-  }).then(function(historyObjs) {
-    var promises = historyObjs.map(function(obj) {
-      return self._addTxId(obj.txId)
-    })
-
-    return Q.all(promises)
-
-  }).then(function() {
-    return Q.ninvoke(self, 'scanAddressUnspent', address)
-
-  }).done(function() { cb(null) }, function(error) { cb(error) })
+  this.fullScanAddresses([address], cb)
 }
 
 /**
@@ -86,11 +127,17 @@ TxFetcher.prototype.fullScanAddress = function(address, cb) {
 TxFetcher.prototype.fullScanAddresses = function(addresses, cb) {
   var self = this
 
-  var promises = addresses.map(function(address) {
-    return Q.ninvoke(self, 'fullScanAddress', address)
-  })
+  Q.fcall(function() {
+    var promises = []
 
-  return Q.all(promises).done(function() { cb(null) }, function(error) { cb(error) })
+    addresses.forEach(function(address) {
+      promises.push(Q.ninvoke(self.bs, 'getUTXO', address))
+      promises.push(Q.ninvoke(self.bs, 'getHistory', address))
+    })
+
+    return Q.all(promises)
+
+  }).then(self._addRecords.bind(self)).done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 

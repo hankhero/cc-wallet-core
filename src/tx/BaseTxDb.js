@@ -1,3 +1,4 @@
+var cclib = require('coloredcoinjs-lib')
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
@@ -29,25 +30,6 @@ BaseTxDb.TxStatusInvalid = 3
  * @callback BaseTxDb~errorCallback
  * @param {?Error} error
  */
-
-/**
- * @param {string} txId
- * @param {BaseTxDb~errorCallback} cb
- */
-BaseTxDb.prototype.addTxById = function(txId, cb) {
-  var self = this
-
-  Q.fcall(function() {
-    var record = self.txStorage.getTxById(txId)
-    if (record !== null)
-      return Q.ninvoke(self, 'maybeRecheckTxStatus', txId, record.status)
-
-    return Q.ninvoke(self.bs, 'getTx', txId).then(function(tx) {
-      return Q.ninvoke(self, 'addTx', tx, null)
-    })
-
-  }).done(function() { cb(null) }, function(error) { cb(error) })
-}
 
 /**
  * @param {coloredcoinjs-lib.Transaction} tx
@@ -83,11 +65,23 @@ BaseTxDb.prototype.addTx = function(tx, status, cb) {
 
     }).then(function() {
       self.lastStatusCheck.set(txId, true)
-      return self.coinManager.applyTx(tx)
+      return Q.ninvoke(self.coinManager, 'applyTx', tx)
 
     })
 
   }).done(function() { cb(null) }, function(error) { cb(error) })
+}
+
+/**
+ * @param {string} txId
+ * @return {?coloredcoinjs-lib.Transaction} tx
+ */
+BaseTxDb.prototype.getTxById = function(txId) {
+  var record = this.txStorage.getTxById(txId)
+  if (record === null)
+    return null
+
+  return cclib.Transaction.fromHex(record.rawTx)
 }
 
 /**
@@ -192,7 +186,7 @@ BaseTxDb.prototype.isTxValid = function(txId, cb) {
     return record.status
 
   }).then(function(status) {
-    if (status === Base.TxStatusConfirmed)
+    if (status === BaseTxDb.TxStatusConfirmed)
       return status
 
     return Q.ninvoke(self, 'maybeRecheckTxStatus', txId, status)

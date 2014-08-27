@@ -1,6 +1,5 @@
 var inherits = require('util').inherits
 
-var _ = require('lodash')
 var Q = require('q')
 
 var BaseTxDb = require('./BaseTxDb')
@@ -35,7 +34,7 @@ NaiveTxDb.prototype.identifyTxStatus = function(txId, cb) {
     throw error
 
   }).then(function(blockhash) {
-    if (_.isUndefined(blockhash))
+    if (blockhash === null)
       return BaseTxDb.TxStatusUnconfirmed
 
     return BaseTxDb.TxStatusConfirmed

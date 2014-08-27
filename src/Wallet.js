@@ -1,5 +1,3 @@
-var assert = require('assert')
-
 var _ = require('lodash')
 var Q = require('q')
 var bitcoin = require('bitcoinjs-lib')

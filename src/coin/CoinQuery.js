@@ -1,7 +1,6 @@
 var _ = require('lodash')
 var Q = require('q')
 
-var Coin = require('./Coin')
 var CoinList = require('./CoinList')
 
 
@@ -116,7 +115,7 @@ CoinQuery.prototype.getCoins = function(cb) {
       addresses.map(function(address) { return coinManager.getCoinsForAddress(address) }))
 
     coins = coins.filter(function(coin) { return !coin.isSpent() })
-/*
+
     var promises = coins.map(function(coin) {
       return Q.ninvoke(coin, 'isConfirmed').then(function(isConfirmed) {
         if (self.query.onlyConfirmed && !isConfirmed)
@@ -136,11 +135,11 @@ CoinQuery.prototype.getCoins = function(cb) {
     })
 
     return Q.all(promises)
-*/
-
-// only as sequence! parallel kill ensureInputValues.. need tx sort
-    var promise = Q()
+// sequence version
+/*
     var result = []
+    var promise = Q()
+
     coins.forEach(function(coin) {
       promise = promise.then(function() {
         return Q.ninvoke(coin, 'isConfirmed').then(function(isConfirmed) {
@@ -164,6 +163,7 @@ CoinQuery.prototype.getCoins = function(cb) {
     })
 
     return promise.then(function() { return result })
+*/
 
   }).then(function(coins) {
     return coins.filter(function(coin) { return !_.isUndefined(coin) })

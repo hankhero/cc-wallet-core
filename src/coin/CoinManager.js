@@ -19,35 +19,49 @@ function CoinManager(wallet, storage) {
 }
 
 /**
- * @param {coloredcoinjs-lib.Transaction} tx
+ * @callback CoinManager~applyTx
+ * @param {?Error} error
  */
-CoinManager.prototype.applyTx = function(tx) {
+
+/**
+ * @param {coloredcoinjs-lib.Transaction} tx
+ * @param {CoinManager~applyTx} cb
+ */
+CoinManager.prototype.applyTx = function(tx, cb) {
   var self = this
 
-  var assetdefs = self.wallet.getAllAssetDefinitions()
-  var addresses = _.flatten(
-    assetdefs.map(function(assetdef) { return self.wallet.getAllAddresses(assetdef) }))
+  return Q.fcall(function() {
+    var assetdefs = self.wallet.getAllAssetDefinitions()
+    var addresses = _.flatten(
+      assetdefs.map(function(assetdef) { return self.wallet.getAllAddresses(assetdef) }))
 
-  tx.ins.forEach(function(input) {
-    var txId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
-    self.storage.markCoinAsSpend(txId, input.index)
-  })
-
-  tx.outs.forEach(function(output, index) {
-    var script = bitcoin.Script.fromBuffer(output.script.toBuffer())
-    var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
-
-    if (addresses.indexOf(address) === -1)
-      return
-
-    self.storage.add({
-      txId: tx.getId(),
-      outIndex: index,
-      value: output.value,
-      script: output.script,
-      address: address
+    tx.ins.forEach(function(input) {
+      var txId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
+      self.storage.markCoinAsSpend(txId, input.index)
     })
-  })
+
+    var promises = tx.outs.map(function(output, index) {
+      var script = bitcoin.Script.fromBuffer(output.script.toBuffer())
+      var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
+
+      if (addresses.indexOf(address) === -1)
+        return Q()
+
+      self.storage.add({
+        txId: tx.getId(),
+        outIndex: index,
+        value: output.value,
+        script: output.script,
+        address: address
+      })
+
+      var coin = self.record2Coin(self.storage.get(tx.getId(), index))
+      return Q.ninvoke(coin, 'getMainColorValue')
+    })
+
+    return Q.all(promises)
+
+  }).done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 /**
@@ -127,7 +141,6 @@ CoinManager.prototype.getCoinColorValue = function(coin, colorDefinition, cb) {
  */
 CoinManager.prototype.getMainCoinColorValue = function(coin, cb) {
   var cdManager = this.wallet.getColorDefinitionManager()
-  var colorData = this.wallet.getColorData()
 
   Q.fcall(function() {
     var coinColorValue = null

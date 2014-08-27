@@ -24,7 +24,7 @@ function TxStorage() {
   this.dbKey = this.globalPrefix + 'tx'
 
   if (!_.isArray(this.store.get(this.dbKey)))
-    this.store.set(this.dbKey, [])
+    this.store.set(this.dbKey, {})
 }
 
 inherits(TxStorage, SyncStorage)
@@ -33,21 +33,19 @@ inherits(TxStorage, SyncStorage)
  * @param {string} txId
  * @param {string} rawTx
  * @param {number} status
- * @throws {Error} If record fields txId or rawTx equal to param fields
+ * @throws {Error} If txId exists
  */
 TxStorage.prototype.addTx = function(txId, rawTx, status) {
   var records = this.getAll()
-  records.forEach(function(record) {
-    if (record.txId === txId || record.rawTx === rawTx)
-      throw new Error('Same tx already exists')
-  })
+  if (!_.isUndefined(records[txId]))
+    throw new Error('Same tx already exists')
 
-  records.push({
+  records[txId] = {
     txId: txId,
     rawTx: rawTx,
     status: status,
     blockHeight: null
-  })
+  }
 
   this.store.set(this.dbKey, records)
 }
@@ -60,16 +58,10 @@ TxStorage.prototype.addTx = function(txId, rawTx, status) {
 TxStorage.prototype.setTxStatus = function(txId, status) {
   var records = this.getAll()
 
-  var exists = records.some(function(record) {
-    if (record.txId === txId) {
-      record.status = status
-      return true
-    }
-
-    return false
-  })
-  if (!exists)
+  if (_.isUndefined(records[txId]))
     throw new Error('txId not exists')
+
+  records[txId].status = status
 
   this.store.set(this.dbKey, records)
 }
@@ -82,16 +74,10 @@ TxStorage.prototype.setTxStatus = function(txId, status) {
 TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
   var records = this.getAll()
 
-  var exists = records.some(function(record) {
-    if (record.txId === txId) {
-      record.blockHeight = blockHeight
-      return true
-    }
-
-    return false
-  })
-  if (!exists)
+  if (_.isUndefined(records[txId]))
     throw new Error('txId not exists')
+
+  records[txId].blockHeight = blockHeight
 
   this.store.set(this.dbKey, records)
 }
@@ -100,21 +86,15 @@ TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
  * @return {?TxStorageRecord}
  */
 TxStorage.prototype.getTxById = function(txId) {
-  var records = this.getAll().filter(function(record) {
-    return record.txId === txId
-  })
-
-  if (records.length === 1)
-    return records[0]
-
-  return null
+  var record = this.getAll()[txId] || null
+  return record
 }
 
 /**
  * @return {TxStorageRecord[]}
  */
 TxStorage.prototype.getAll = function() {
-  var records = this.store.get(this.dbKey) || []
+  var records = this.store.get(this.dbKey) || {}
   return records
 }
 

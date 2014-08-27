@@ -49,7 +49,7 @@ module.exports = function(grunt) {
         options: {
           mask: '*.js',
           reporter: 'spec',
-          timeout: 20000
+          timeout: 60000
         }
       },
       coveralls: {
@@ -58,7 +58,7 @@ module.exports = function(grunt) {
           coverage: true,
           mask: '*.js',
           reporter: 'spec',
-          timeout: 20000
+          timeout: 60000
         }
       }
     },
@@ -66,7 +66,7 @@ module.exports = function(grunt) {
       test: {
         options: {
           reporter: 'spec',
-          timeout: 20000
+          timeout: 60000
         },
         src: ['test/*.js']
       }

@@ -98,11 +98,14 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
   describe('getTxBlockHash', function() {
     it('return null for unconfirmed tx', function(done) {
       sendCoins(function(txId) {
-        bs.getTxBlockHash(txId, function(error, response) {
-          expect(error).to.be.null
-          expect(response).to.be.null
-          done()
-        })
+        // timeout for transaction propagation
+        setTimeout(function() {
+          bs.getTxBlockHash(txId, function(error, response) {
+            expect(error).to.be.null
+            expect(response).to.be.null
+            done()
+          })
+        }, 10*1000)
       })
     })
 
