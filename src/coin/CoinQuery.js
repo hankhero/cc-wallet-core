@@ -116,6 +116,8 @@ CoinQuery.prototype.getCoins = function(cb) {
 
     coins = coins.filter(function(coin) { return !coin.isSpent() })
 
+// parallel version
+/*
     var promises = coins.map(function(coin) {
       return Q.ninvoke(coin, 'isConfirmed').then(function(isConfirmed) {
         if (self.query.onlyConfirmed && !isConfirmed)
@@ -135,8 +137,9 @@ CoinQuery.prototype.getCoins = function(cb) {
     })
 
     return Q.all(promises)
+*/
+
 // sequence version
-/*
     var result = []
     var promise = Q()
 
@@ -163,7 +166,6 @@ CoinQuery.prototype.getCoins = function(cb) {
     })
 
     return promise.then(function() { return result })
-*/
 
   }).then(function(coins) {
     return coins.filter(function(coin) { return !_.isUndefined(coin) })

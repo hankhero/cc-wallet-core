@@ -22,6 +22,7 @@ var BlockchainBase = require('./BlockchainBase')
  * @param {number} [opts.requestTimeout=5*1000]
  * @param {number} [opts.maxCacheSize=500]
  * @param {number} [opts.maxCacheAge=10*1000] Cache live in ms
+ * @param {BaseTxDb} [opts.txDb] Get transactions from TxDb, optional
  */
 function BlockrIo(opts) {
   opts = _.extend({
@@ -43,6 +44,9 @@ function BlockrIo(opts) {
 
   this.requestTimeout = opts.requestTimeout + 25
   this.requestPathCache = LRU({ maxAge: this.requestTimeout })
+
+  if (!_.isUndefined(opts.txDb))
+    this.txDb = opts.txDb
 }
 
 inherits(BlockrIo, BlockchainBase)
@@ -146,8 +150,16 @@ BlockrIo.prototype.getBlockCount = function(cb) {
 BlockrIo.prototype.getTx = function(txId, cb) {
   var self = this
 
-  Q.ninvoke(self, 'request', '/api/v1/tx/raw/' + txId).then(function(response) {
-    return cclib.Transaction.fromHex(response.tx.hex)
+  Q.fcall(function() {
+    if (!_.isUndefined(self.txDb)) {
+      var tx = self.txDb.getTxById(txId)
+      if (tx !== null)
+        return tx
+    }
+
+    return Q.ninvoke(self, 'request', '/api/v1/tx/raw/' + txId).then(function(response) {
+      return cclib.Transaction.fromHex(response.tx.hex)
+    })
 
   }).done(function(tx) { cb(null, tx) }, function(error) { cb(error) })
 }

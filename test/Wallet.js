@@ -28,7 +28,6 @@ describe('Wallet', function() {
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
 
     wallet.fullScanAllAddresses(function(error) {
-      if (error) throw error
       expect(error).to.be.null
 
       var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
@@ -37,7 +36,6 @@ describe('Wallet', function() {
       //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
       var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
       wallet.sendCoins(bitcoin, targets, function(error, txId) {
-        //console.log(error, txId)
         expect(error).to.be.null
         expect(txId).to.be.an('string').with.to.have.length(64)
         done()
@@ -48,7 +46,7 @@ describe('Wallet', function() {
   // Need new issued asset, this very long scanned
   it('sendCoins epobc', function(done) {
     // For scan all chain color transactions need time
-    this.timeout(60*1000)
+    this.timeout(600*1000)
 
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
     var data = {
@@ -59,7 +57,6 @@ describe('Wallet', function() {
     var assetdef = wallet.addAssetDefinition(data)
 
     wallet.fullScanAllAddresses(function(error) {
-      if (error) throw error
       expect(error).to.be.null
 
       var address = wallet.getSomeAddress(assetdef)
@@ -68,7 +65,6 @@ describe('Wallet', function() {
       //wallet.getAvailableBalance(assetdef, function(error, balance) {
         //console.log(error, balance, assetdef.formatValue(balance))
       wallet.sendCoins(assetdef, targets, function(error, txId) {
-        //console.log(error, txId)
         expect(error).to.be.null
         expect(txId).to.be.an('string').with.to.have.length(64)
         done()

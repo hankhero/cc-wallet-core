@@ -53,6 +53,7 @@ function Wallet(opts) {
 
   this.txStorage = new tx.TxStorage()
   this.txDb = new tx.NaiveTxDb(this.txStorage, this.coinManager, this.blockchain)
+  this.blockchain.txDb = this.txDb // not good, but else sendCoins with addUnconfirmedTx not working
   this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
 
   this.txTransformer = new tx.TxTransformer()
