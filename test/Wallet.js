@@ -28,6 +28,7 @@ describe('Wallet', function() {
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
 
     wallet.fullScanAllAddresses(function(error) {
+      if (error) throw error
       expect(error).to.be.null
 
       var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
@@ -58,6 +59,7 @@ describe('Wallet', function() {
     var assetdef = wallet.addAssetDefinition(data)
 
     wallet.fullScanAllAddresses(function(error) {
+      if (error) throw error
       expect(error).to.be.null
 
       var address = wallet.getSomeAddress(assetdef)

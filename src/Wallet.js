@@ -327,7 +327,16 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
     return Q.ninvoke(self.txTransformer, 'transformTx', assetTx, 'signed')
 
   }).then(function(signedTx) {
-    return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+    return Q.fcall(function() {
+      return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+
+    }).then(function() {
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+
+    }).then(function() {
+      return signedTx.getId()
+
+    })
 
   }).done(function(txId) { cb(null, txId) }, function(error) { cb(error) })
 }

@@ -35,7 +35,7 @@ BaseTxDb.TxStatusInvalid = 3
  * @param {coloredcoinjs-lib.Transaction} tx
  * @param {BaseTxDb~errorCallback} cb
  */
-BaseTxDb.prototype.addUnonfirmedTx = function(tx, cb) {
+BaseTxDb.prototype.addUnconfirmedTx = function(tx, cb) {
   this.addTx(tx, BaseTxDb.TxStatusUnconfirmed, cb)
 }
 
