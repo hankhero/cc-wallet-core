@@ -13,6 +13,7 @@ var RecheckInterval = 60 * 1000
  * @param {CoinManager} coinManager
  * @param {BlockchainBase} bs
  */
+// Todo: reorg blockchain and double-spending
 function BaseTxDb(txStorage, coinManager, bs) {
   this.txStorage = txStorage
   this.coinManager = coinManager

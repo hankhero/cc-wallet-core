@@ -84,7 +84,7 @@ AssetTx.prototype.makeOperationalTx = function() {
     return new cclib.ColorTarget(target.getAddress(), colorValue)
   })
 
-  var operationalTx = new OperationalTx(this.wallet, assetdef)
+  var operationalTx = new OperationalTx(this.wallet)
   operationalTx.addTargets(colorTargets)
 
   return operationalTx

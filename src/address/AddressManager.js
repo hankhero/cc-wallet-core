@@ -1,11 +1,12 @@
 var assert = require('assert')
 
-var _ = require('lodash')
-var LRU = require('lru-cache')
 var bitcoin = require('bitcoinjs-lib')
 var ECPubKey = bitcoin.ECPubKey
 var HDNode = bitcoin.HDNode
 var networks = Object.keys(bitcoin.networks).map(function(key) { return bitcoin.networks[key] })
+var cclib = require('coloredcoinjs-lib')
+var _ = require('lodash')
+var LRU = require('lru-cache')
 
 var Address = require('./Address')
 var AssetDefinition = require('../asset').AssetDefinition
@@ -110,26 +111,27 @@ AddressManager.prototype.getMasterKey = function() {
 }
 
 /**
- * @param {(ColorDefinition|AssetDefinition)} definition
+ * @param {(function|ColorDefinition|AssetDefinition)} definition
  * @return {number}
  * @throws {Error} If multi-color asset or unknown definition type
  */
 AddressManager.prototype.selectChain = function(definition) {
-  var colordef = definition
-
-  if (colordef instanceof AssetDefinition) {
-    var colordefs = colordef.getColorSet().getColorDefinitions()
+  if (definition instanceof AssetDefinition) {
+    var colordefs = definition.getColorSet().getColorDefinitions()
     if (colordefs.length !== 1)
       throw new Error('Currently only single-color assets are supported')
 
-    colordef = colordefs[0]
+    definition = colordefs[0]
   }
 
-  switch (colordef.getColorType()) {
-    case 'uncolored':
+  if (definition instanceof cclib.ColorDefinition)
+    definition = definition.constructor
+
+  switch (definition) {
+    case cclib.UncoloredColorDefinition:
       return UNCOLORED_CHAIN
 
-    case 'epobc':
+    case cclib.EPOBCColorDefinition:
       return EPOBC_CHAIN
 
     default:
@@ -140,7 +142,7 @@ AddressManager.prototype.selectChain = function(definition) {
 /**
  * Get new address and save it to db
  *
- * @param {(ColorDefinition|AssetDefinition)} definition
+ * @param {(function|ColorDefinition|AssetDefinition)} definition
  * @return {Address}
  * @throws {Error} If masterKey not defined
  */
@@ -170,7 +172,7 @@ AddressManager.prototype.getNewAddress = function(definition) {
 /**
  * Get first address if exists else create and return it
  *
- * @param {(ColorDefinition|AssetDefinition)} definition
+ * @param {(function|ColorDefinition|AssetDefinition)} definition
  * @return {Address[]}
  * @throws {Error} If masterKey not defined
  */
@@ -186,7 +188,7 @@ AddressManager.prototype.getSomeAddress = function(definition) {
 /**
  * Get all addresses
  *
- * @param {(ColorDefinition|AssetDefinition)} [definition]
+ * @param {(function|ColorDefinition|AssetDefinition)} [definition]
  * @return {Address[]}
  * @throws {Error} If masterKey not defined
  */

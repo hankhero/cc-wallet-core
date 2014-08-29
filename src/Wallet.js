@@ -297,6 +297,57 @@ Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
 }
 
 /**
+ * @callback Wallet~issueCoins
+ * @param {?Error} error
+ */
+
+/**
+ * @param {string} moniker
+ * @param {string} pck
+ * @param {number} units
+ * @param {number} atoms
+ * @param {?} cb
+ */
+Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
+  var self = this
+
+  Q.fcall(function() {
+    var colorDefinitionCls = self.cdManager.getColorDefenitionClsForType(pck)
+    if (colorDefinitionCls === null)
+      throw new Error('color scheme ' + pck + ' not recognized')
+
+    var targetAddress = self.aManager.getSomeAddress(colorDefinitionCls).getAddress()
+    var colorValue = new cclib.ColorValue(self.cdManager.getGenesis(), units*atoms)
+    var colorTarget = new cclib.ColorTarget(targetAddress, colorValue)
+
+    var operationalTx = new tx.OperationalTx(self)
+    operationalTx.addTarget(colorTarget)
+
+    return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
+
+  }).then(function(composedTx) {
+    return Q.ninvoke(self.txTransformer, 'transformTx', composedTx, 'signed')
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.blockchain, 'sendTx', signedTx).then(function() { return signedTx })
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.blockchain, 'getBlockCount').then(function(blockCount) {
+      var colorScheme = [pck, signedTx.getId(), '0', blockCount-1].join(':')
+
+      self.addAssetDefinition({
+        monikers: [moniker],
+        colorSchemes: [colorScheme],
+        unit: atoms
+      })
+
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+    })
+
+  }).done(function() { cb(null) }, function(error) { cb(error) })
+}
+
+/**
  * @typedef {Object} rawTarget
  * @property {string} address Target address
  * @property {number} value Target value in satoshi

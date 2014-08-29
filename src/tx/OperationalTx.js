@@ -9,9 +9,8 @@ var cclib = require('coloredcoinjs-lib')
  * @param {Wallet} wallet
  * @param {AssetDefinition} assetdef
  */
-function OperationalTx(wallet, assetdef) {
+function OperationalTx(wallet) {
   this.wallet = wallet
-  this.assetdef = assetdef
   this.targets = []
 }
 
@@ -119,6 +118,7 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     if (feeEstimator !== null)
       requiredSum = requiredSum.plus(feeEstimator.estimateRequiredFee({ extraTxIns: coins.length }))
 
+/*
     function appendUntil(index) {
       if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
         return { coins: selectedCoins, value: selectedCoinsColorValue }
@@ -137,6 +137,27 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     }
 
     return appendUntil(0)
+*/
+    var promise = Q()
+    coins.forEach(function(coin) {
+      promise = promise.then(function() {
+        if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
+          return
+
+        return Q.ninvoke(coin, 'getMainColorValue').then(function(coinColorValue) {
+          selectedCoinsColorValue = selectedCoinsColorValue.plus(coinColorValue)
+          selectedCoins.push(coin)
+        })
+      })
+    })
+
+    return promise.then(function() {
+      if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
+        return { coins: selectedCoins, value: selectedCoinsColorValue }
+
+      throw new Error(
+        'not enough coins: ' + requiredSum.getValue() + ' requested, ' + selectedCoinsColorValue.getValue() +' found')
+    })
 
   }).done(function(data) { cb(null, data.coins, data.value) }, function(error) { cb(error) })
 }

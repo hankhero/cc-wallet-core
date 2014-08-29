@@ -12,8 +12,9 @@ var cclib = require('coloredcoinjs-lib')
  * @param {string} [opts.globalPrefix=cc_wallet_]
  */
 function SyncStorage(opts) {
-  opts = _.isUndefined(opts) ? {} : opts
-  opts.globalPrefix = _.isUndefined(opts.globalPrefix) ? 'cc_wallet_' : opts.globalPrefix
+  opts = _.extend({
+    globalPrefix: 'cc_wallet_'
+  }, opts)
 
   cclib.SyncStorage.call(this, opts)
 }

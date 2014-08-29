@@ -43,15 +43,29 @@ describe('Wallet', function() {
     })
   })
 
-  // Need new issued asset, this very long scanned
-  it('sendCoins epobc', function(done) {
-    // For scan all chain color transactions need time
-    this.timeout(600*1000)
+  it('issueCoins epobc', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
 
-    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
+    wallet.fullScanAllAddresses(function(error) {
+      expect(error).to.be.null
+
+      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      var address = wallet.getSomeAddress(bitcoin)
+
+      wallet.issueCoins('gold', 'epobc', 5, 10000, function(error) {
+        if (error) throw error
+        expect(error).to.be.null
+        done()
+      })
+    })
+  })
+
+  // Need new issued asset, this broken
+  it.skip('sendCoins epobc', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bd', testnet: true })
     var data = {
       monikers: ['gold'],
-      colorSchemes: ['epobc:73560ffd916267a70a1233eb63d5d97e79e7eac981a52860df1ac38d2568b3a5:0:274664'],
+      colorSchemes: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
       unit: 10000
     }
     var assetdef = wallet.addAssetDefinition(data)
