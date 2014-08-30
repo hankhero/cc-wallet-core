@@ -8,7 +8,13 @@ var CoinList = require('./CoinList')
  * @class CoinQuery
  *
  * @param {Wallet} wallet
- * @param {Object} query
+ * @param {Object} [query]
+ * @param {ColorDefinition[]} [query.onlyColoredAs=null]
+ * @param {string[]} [query.onlyAddresses=null]
+ * @param {boolean} [query.includeSpent=false]
+ * @param {boolean} [query.onlySpent=false]
+ * @param {boolean} [query.includeUnconfirmed=false]
+ * @param {boolean} [query.onlyUnconfirmed=false]
  */
 function CoinQuery(wallet, query) {
   this.wallet = wallet
@@ -16,77 +22,78 @@ function CoinQuery(wallet, query) {
   this.query = _.extend({
     onlyColoredAs: null,
     onlyAddresses: null,
-    onlyConfirmed: false,
+
+    includeSpent: false,
+    onlySpent: false,
+
+    includeUnconfirmed: false,
     onlyUnconfirmed: false
   }, query)
 }
 
 /**
- * Return clone of current CoinQuery
- *
  * @return {CoinQuery}
  */
 CoinQuery.prototype.clone = function() {
-  var newCoinQuery = new CoinQuery(this.wallet, this.query)
+  var newCoinQuery = new CoinQuery(this.wallet, _.cloneDeep(this.query))
   return newCoinQuery
 }
 
 /**
- * Select coins only for given ColorDefinition
- *
  * @param {(ColorDefinition|ColorDefinition[])} colors
  * @return {CoinQuery}
  */
 CoinQuery.prototype.onlyColoredAs = function(colors) {
   if (!_.isArray(colors))
     colors = [colors]
+  colors = colors.map(function(cd) { return cd.getColorId() })
 
-  var newCoinQuery = this.clone()
-  newCoinQuery.query.onlyColoredAs = colors.map(function(cd) { return cd.getColorId() })
-
-  return newCoinQuery
+  var query = _.extend(_.cloneDeep(this.query), { onlyColoredAs: colors })
+  return new CoinQuery(this.wallet, query)
 }
 
 /**
- * Select coins only belong to given addresses
- *
  * @param {(string|string[])} data
  * @return {CoinQuery}
  */
-CoinQuery.prototype.onlyAddresses = function(data) {
-  if (!_.isArray(data))
-    data = [data]
+CoinQuery.prototype.onlyAddresses = function(addresses) {
+  if (!_.isArray(addresses))
+    addresses = [addresses]
 
-  var newCoinQuery = this.clone()
-  newCoinQuery.query.onlyAddresses = data
-
-  return newCoinQuery
+  var query = _.extend(_.cloneDeep(this.query), { onlyAddresses: addresses })
+  return new CoinQuery(this.wallet, query)
 }
 
 /**
- * Select only confirmed coins
- *
  * @return {CoinQuery}
  */
-CoinQuery.prototype.getConfirmed = function() {
-  var newCoinQuery = this.clone()
-  newCoinQuery.query.onlyConfirmed = true
-  newCoinQuery.query.onlyUnconfirmed = false
-
-  return newCoinQuery
+CoinQuery.prototype.includeSpent = function() {
+  var query = _.extend(_.cloneDeep(this.query), { includeSpent: true })
+  return new CoinQuery(this.wallet, query)
 }
 
 /**
- * Select only unconfirmed coins
- *
  * @return {CoinQuery}
  */
-CoinQuery.prototype.getUnconfirmed = function() {
-  var newCoinQuery = this.clone()
-  newCoinQuery.query.onlyConfirmed = false
-  newCoinQuery.query.onlyUnconfirmed = true
+CoinQuery.prototype.onlySpent = function() {
+  var query = _.extend(_.cloneDeep(this.query), { onlySpent: true })
+  return new CoinQuery(this.wallet, query)
+}
 
-  return newCoinQuery
+/**
+ * @return {CoinQuery}
+ */
+CoinQuery.prototype.includeUnconfirmed = function() {
+  var query = _.extend(_.cloneDeep(this.query), { includeUnconfirmed: true })
+  return new CoinQuery(this.wallet, query)
+}
+
+/**
+ * @return {CoinQuery}
+ */
+CoinQuery.prototype.onlyUnconfirmed = function() {
+  var query = _.extend(_.cloneDeep(this.query), { onlyUnconfirmed: true })
+  return new CoinQuery(this.wallet, query)
 }
 
 /**
@@ -104,6 +111,7 @@ CoinQuery.prototype.getCoins = function(cb) {
   var self = this
 
   Q.fcall(function() {
+    /** select coins for filtered addresses */
     var assetdefs = self.wallet.getAllAssetDefinitions()
     var addresses = _.flatten(
       assetdefs.map(function(assetdef) { return self.wallet.getAllAddresses(assetdef) }))
@@ -114,44 +122,25 @@ CoinQuery.prototype.getCoins = function(cb) {
     var coins = _.flatten(
       addresses.map(function(address) { return coinManager.getCoinsForAddress(address) }))
 
-    coins = coins.filter(function(coin) { return !coin.isSpent() })
+    /** filter include/only spent coins */
+    if (self.query.onlySpent)
+      coins = coins.filter(function(coin) { return coin.isSpent() })
+    if (!self.query.includeSpent && !self.query.onlySpent)
+      coins = coins.filter(function(coin) { return !coin.isSpent() })
 
-// parallel version
-/*
-    var promises = coins.map(function(coin) {
-      return Q.ninvoke(coin, 'isConfirmed').then(function(isConfirmed) {
-        if (self.query.onlyConfirmed && !isConfirmed)
-          return
-
-        if (self.query.onlyUnconfirmed && isConfirmed)
-          return
-
-        if (self.query.onlyColoredAs === null)
-          return coin
-
-        return Q.ninvoke(coin, 'getMainColorValue').then(function(colorValue) {
-          if (self.query.onlyColoredAs.indexOf(colorValue.getColorId()) !== -1)
-            return coin
-        })
-      })
-    })
-
-    return Q.all(promises)
-*/
-
-// sequence version
     var result = []
     var promise = Q()
 
     coins.forEach(function(coin) {
       promise = promise.then(function() {
         return Q.ninvoke(coin, 'isConfirmed').then(function(isConfirmed) {
-          if (self.query.onlyConfirmed && !isConfirmed)
-            return
-
+          /** filter include/only unconfirmed coins */
           if (self.query.onlyUnconfirmed && isConfirmed)
             return
+          if (!self.query.onlyUnconfirmed && !self.query.includeUnconfirmed && !isConfirmed)
+            return
 
+          /** filter color */
           if (self.query.onlyColoredAs === null) {
             result.push(coin)
             return

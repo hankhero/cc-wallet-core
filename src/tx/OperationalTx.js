@@ -105,6 +105,7 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     var coinQuery = self.wallet.getCoinQuery()
     coinQuery = coinQuery.onlyColoredAs(colordef)
     coinQuery = coinQuery.onlyAddresses(self.wallet.getAllAddresses(colordef))
+    coinQuery = coinQuery.includeUnconfirmed() // Todo: need wait confirmation? may be as option
 
     return Q.ninvoke(coinQuery, 'getCoins')
 

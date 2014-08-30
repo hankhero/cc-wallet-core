@@ -240,23 +240,15 @@ Wallet.prototype.getCoinQuery = function() {
 
 /**
  * @param {AssetDefinition} assetdef
- * @param {Object} opts
- * @param {boolean} [opts.onlyConfirmed=false]
- * @param {boolean} [opts.onlyUnconfirmed=false]
+ * @param {CoinQuery} coinQuery
  * @param {function} cb
  */
-Wallet.prototype._getBalance = function(assetdef, opts, cb) {
+Wallet.prototype._getBalance = function(assetdef, coinQuery, cb) {
   var self = this
 
   Q.fcall(function() {
-    var coinQuery = self.getCoinQuery()
     coinQuery = coinQuery.onlyColoredAs(assetdef.getColorSet().getColorDefinitions())
     coinQuery = coinQuery.onlyAddresses(self.getAllAddresses(assetdef))
-
-    if (opts.onlyConfirmed)
-      coinQuery = coinQuery.getConfirmed()
-    if (opts.onlyUnconfirmed)
-      coinQuery = coinQuery.getUnconfirmed()
 
     return Q.ninvoke(coinQuery, 'getCoins')
 
@@ -277,7 +269,8 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, { 'onlyConfirmed': true }, cb)
+  var coinQuery = this.getCoinQuery()
+  this._getBalance(assetdef, coinQuery, cb)
 }
 
 /**
@@ -285,7 +278,8 @@ Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getTotalBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, {}, cb)
+  var coinQuery = this.getCoinQuery().includeUnconfirmed()
+  this._getBalance(assetdef, coinQuery, cb)
 }
 
 /**
@@ -293,7 +287,8 @@ Wallet.prototype.getTotalBalance = function(assetdef, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, { 'onlyUnconfirmed': true }, cb)
+  var coinQuery = this.getCoinQuery().onlyUnconfirmed()
+  this._getBalance(assetdef, coinQuery, cb)
 }
 
 /**
@@ -391,6 +386,20 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
     })
 
   }).done(function(txId) { cb(null, txId) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~getHistory
+ * @param {?Error} error
+ * @param {?[]} history
+ */
+
+/**
+ * @param {AssetDefinition} assetdef
+ * @param {Wallet~getHistory} cb
+ */
+Wallet.prototype.getHistory = function(assetdef, cb) {
+
 }
 
 /**
