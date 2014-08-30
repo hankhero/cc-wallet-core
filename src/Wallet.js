@@ -1,50 +1,79 @@
-var assert = require('assert')
-
 var _ = require('lodash')
 var Q = require('q')
 var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
 
-var AddressManager = require('./address').AddressManager
+var address = require('./address')
 var asset = require('./asset')
+var blockchain = require('./blockchain')
+var coin = require('./coin')
 var tx = require('./tx')
-var storage = require('./storage')
 
+
+/**
+ * @callback Wallet~errorCallback
+ * @param {?Error} error
+ */
 
 /**
  * @class Wallet
  *
- * @param {Object} data
- * @param {Buffer|string} data.masterKey Seed for hierarchical deterministic wallet
- * @param {boolean} [data.testnet=false]
+ * @param {Object} opts
+ * @param {(Buffer|string)} opts.masterKey Seed for hierarchical deterministic wallet
+ * @param {boolean} [opts.testnet=false]
+ * @param {string} [opts.blockchain='BlockrIo'] Now available only BlockrIo
  */
-function Wallet(data) {
-  assert(_.isObject(data), 'Expected Object data, got ' + data)
-  assert(Buffer.isBuffer(data.masterKey) || _.isString(data.masterKey),
-    'Expected Buffer|string data.masterKey, got ' + data.masterKey)
-  data.testnet = _.isUndefined(data.testnet) ? false : data.testnet
-  assert(_.isBoolean(data.testnet), 'Expected boolean data.testnet, got ' + data.testnet)
+function Wallet(opts) {
+  opts = _.extend({
+    testnet: false,
+    blockchain: 'BlockrIo'
+  }, opts)
+
+  this.network = opts.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
 
 
-  this.aStorage = new storage.AddressStorage()
-  this.aManager = new AddressManager(this.aStorage)
-  this.network = data.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
-  this.aManager.setMasterKeyFromSeed(data.masterKey, this.network)
+  this.blockchain = new blockchain[opts.blockchain]({ testnet: opts.testnet })
 
-  this.blockchain = new cclib.blockchain.BlockrIOAPI({ testnet: data.testnet })
+  this.cdStorage = new cclib.ColorDefinitionStorage()
+  this.cdManager = new cclib.ColorDefinitionManager(this.cdStorage)
 
-  this.cDataStorage = new cclib.storage.ColorDataStorage()
-  this.cData = new cclib.color.ColorData(this.cDataStorage, this.blockchain)
+  this.cDataStorage = new cclib.ColorDataStorage()
+  this.cData = new cclib.ColorData(this.cDataStorage, this.blockchain)
 
-  this.cdStorage = new cclib.storage.ColorDefinitionStorage()
-  this.cdManager = new cclib.color.ColorDefinitionManager(this.cdStorage)
+  this.aStorage = new address.AddressStorage()
+  this.aManager = new address.AddressManager(this.aStorage)
+  this.aManager.setMasterKeyFromSeed(opts.masterKey, this.network)
 
-  this.adStorage = new storage.AssetDefinitionStorage()
+  this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
   this.adManager.getAllAssets().forEach(this.getSomeAddress.bind(this))
 
+  this.coinStorage = new coin.CoinStorage()
+  this.coinManager = new coin.CoinManager(this, this.coinStorage)
+
+  this.txStorage = new tx.TxStorage()
+  this.txDb = new tx.NaiveTxDb(this.txStorage, this.coinManager, this.blockchain)
+  this.blockchain.txDb = this.txDb // not good, but else sendCoins with addUnconfirmedTx not working
+  this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
+
   this.txTransformer = new tx.TxTransformer()
 }
+
+Wallet.prototype.getNetwork = function() { return this.network }
+
+Wallet.prototype.getBlockchain = function() { return this.blockchain }
+
+Wallet.prototype.getColorDefinitionManager = function() { return this.cdManager }
+
+Wallet.prototype.getColorData = function() { return this.cData }
+
+Wallet.prototype.getAddressManager = function() { return this.adManager }
+
+Wallet.prototype.getCoinManager = function() { return this.coinManager }
+
+Wallet.prototype.getTxDb = function() { return this.txDb }
+
+Wallet.prototype.getTxFetcher = function() { return this.txFetcher }
 
 /**
  * @param {Object} data
@@ -76,7 +105,7 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 }
 
 /**
- * Param asColor in address method not good solution
+ * Param asColorAddress in address method not good solution
  * But sometimes we need bitcoin address for ColorDefintion,
  *  such as in OperationalTx.getChangeAddress
  */
@@ -175,53 +204,51 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
 }
 
 /**
+ * @param {Wallet~errorCallback} cb
+ */
+Wallet.prototype.scanAllAddresses = function(cb) {
+  var self = this
+
+  var assetdefs = self.getAllAssetDefinitions()
+  var addresses = _.flatten(
+    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+
+  this.getTxFetcher().scanAddressesUnspent(addresses, cb)
+}
+
+/**
+ * @param {Wallet~errorCallback} cb
+ */
+Wallet.prototype.fullScanAllAddresses = function(cb) {
+  var self = this
+
+  var assetdefs = self.getAllAssetDefinitions()
+  var addresses = _.flatten(
+    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+
+  this.getTxFetcher().fullScanAddresses(addresses, cb)
+}
+
+/**
  * Return new CoinQuery for request confirmed/unconfirmed coins, balance ...
  *
  * @return {CoinQuery}
  */
 Wallet.prototype.getCoinQuery = function() {
-  var addresses = this.aManager.getAllAddresses()
-  addresses = addresses.map(function(address) { return address.getAddress() })
-
-  return new cclib.coin.CoinQuery({
-    addresses: addresses,
-    blockchain: this.blockchain,
-    colorData: this.cData,
-    colorDefinitionManager: this.cdManager
-  })
+  return new coin.CoinQuery(this)
 }
 
 /**
  * @param {AssetDefinition} assetdef
- * @param {Object} opts
- * @param {boolean} [opts.onlyConfirmed=false]
- * @param {boolean} [opts.onlyUnconfirmed=false]
+ * @param {CoinQuery} coinQuery
  * @param {function} cb
  */
-Wallet.prototype._getBalance = function(assetdef, opts, cb) {
-  assert(assetdef instanceof asset.AssetDefinition,
-    'Expected AssetDefinition assetdef, got ' + assetdef)
-  assert(_.isObject(opts), 'Expected Object opts, got ' + opts)
-  opts = _.extend({
-    onlyConfirmed: false,
-    onlyUnconfirmed: false
-  }, opts)
-  assert(_.isBoolean(opts.onlyConfirmed), 'Expected boolean opts.onlyConfirmed, got ' + opts.onlyConfirmed)
-  assert(_.isBoolean(opts.onlyUnconfirmed), 'Expected boolean opts.onlyUnconfirmed, got ' + opts.onlyUnconfirmed)
-  assert(!opts.onlyConfirmed || !opts.onlyUnconfirmed, 'opts.onlyConfirmed and opts.onlyUnconfirmed both is true')
-  assert(_.isFunction(cb), 'Expected function cb, got ' + cb)
-
+Wallet.prototype._getBalance = function(assetdef, coinQuery, cb) {
   var self = this
 
   Q.fcall(function() {
-    var coinQuery = self.getCoinQuery()
     coinQuery = coinQuery.onlyColoredAs(assetdef.getColorSet().getColorDefinitions())
     coinQuery = coinQuery.onlyAddresses(self.getAllAddresses(assetdef))
-
-    if (opts.onlyConfirmed)
-      coinQuery = coinQuery.getConfirmed()
-    if (opts.onlyUnconfirmed)
-      coinQuery = coinQuery.getUnconfirmed()
 
     return Q.ninvoke(coinQuery, 'getCoins')
 
@@ -232,7 +259,7 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
     if (colorValues.length === 0)
       return 0
 
-    return cclib.color.ColorValue.sum(colorValues).getValue()
+    return cclib.ColorValue.sum(colorValues).getValue()
 
   }).done(function(balance) { cb(null, balance) }, function(error) { cb(error) })
 }
@@ -242,7 +269,8 @@ Wallet.prototype._getBalance = function(assetdef, opts, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, { 'onlyConfirmed': true }, cb)
+  var coinQuery = this.getCoinQuery()
+  this._getBalance(assetdef, coinQuery, cb)
 }
 
 /**
@@ -250,7 +278,8 @@ Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getTotalBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, {}, cb)
+  var coinQuery = this.getCoinQuery().includeUnconfirmed()
+  this._getBalance(assetdef, coinQuery, cb)
 }
 
 /**
@@ -258,7 +287,59 @@ Wallet.prototype.getTotalBalance = function(assetdef, cb) {
  * @param {function} cb
  */
 Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
-  this._getBalance(assetdef, { 'onlyUnconfirmed': true }, cb)
+  var coinQuery = this.getCoinQuery().onlyUnconfirmed()
+  this._getBalance(assetdef, coinQuery, cb)
+}
+
+/**
+ * @callback Wallet~issueCoins
+ * @param {?Error} error
+ */
+
+/**
+ * @param {string} moniker
+ * @param {string} pck
+ * @param {number} units
+ * @param {number} atoms
+ * @param {?} cb
+ */
+Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
+  var self = this
+
+  Q.fcall(function() {
+    var colorDefinitionCls = self.cdManager.getColorDefenitionClsForType(pck)
+    if (colorDefinitionCls === null)
+      throw new Error('color scheme ' + pck + ' not recognized')
+
+    var targetAddress = self.aManager.getSomeAddress(colorDefinitionCls).getAddress()
+    var colorValue = new cclib.ColorValue(self.cdManager.getGenesis(), units*atoms)
+    var colorTarget = new cclib.ColorTarget(targetAddress, colorValue)
+
+    var operationalTx = new tx.OperationalTx(self)
+    operationalTx.addTarget(colorTarget)
+
+    return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
+
+  }).then(function(composedTx) {
+    return Q.ninvoke(self.txTransformer, 'transformTx', composedTx, 'signed')
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.blockchain, 'sendTx', signedTx).then(function() { return signedTx })
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.blockchain, 'getBlockCount').then(function(blockCount) {
+      var colorScheme = [pck, signedTx.getId(), '0', blockCount-1].join(':')
+
+      self.addAssetDefinition({
+        monikers: [moniker],
+        colorSchemes: [colorScheme],
+        unit: atoms
+      })
+
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+    })
+
+  }).done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 /**
@@ -293,19 +374,44 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
     return Q.ninvoke(self.txTransformer, 'transformTx', assetTx, 'signed')
 
   }).then(function(signedTx) {
-    return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+    return Q.fcall(function() {
+      return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+
+    }).then(function() {
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+
+    }).then(function() {
+      return signedTx.getId()
+
+    })
 
   }).done(function(txId) { cb(null, txId) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~getHistory
+ * @param {?Error} error
+ * @param {?[]} history
+ */
+
+/**
+ * @param {AssetDefinition} assetdef
+ * @param {Wallet~getHistory} cb
+ */
+Wallet.prototype.getHistory = function(assetdef, cb) {
+
 }
 
 /**
  * Drop all data from storage's
  */
 Wallet.prototype.clearStorage = function() {
-  this.aStorage.clear()
-  this.cDataStorage.clear()
   this.cdStorage.clear()
+  this.cDataStorage.clear()
+  this.aStorage.clear()
   this.adStorage.clear()
+  this.coinStorage.clear()
+  this.txStorage.clear()
 }
 
 

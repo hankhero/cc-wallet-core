@@ -1,20 +1,10 @@
-var assert = require('assert')
 var inherits = require('util').inherits
 
 var _ = require('lodash')
 var bitcoin = require('bitcoinjs-lib')
 var HDNode = bitcoin.HDNode
 
-var SyncStorage = require('./SyncStorage')
-
-
-function isHexString(s) {
-  var set = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
-
-  return (_.isString(s) &&
-          s.length % 2 === 0 &&
-          s.toLowerCase().split('').every(function(x) { return set.indexOf(x) !== -1 }))
-}
+var SyncStorage = require('../SyncStorage')
 
 
 /**
@@ -55,8 +45,11 @@ inherits(AddressStorage, SyncStorage)
 AddressStorage.prototype.setMasterKey = function(newMasterKey) {
   HDNode.fromBase58(newMasterKey) // Check masterKey
 
+  var currentMasterKey = this.getMasterKey()
   this.store.set(this.masterKeyDBKey, newMasterKey)
-  this.store.set(this.pubKeysDBKey, [])
+
+  if (currentMasterKey !== newMasterKey)
+    this.store.set(this.pubKeysDBKey, [])
 }
 
 /**

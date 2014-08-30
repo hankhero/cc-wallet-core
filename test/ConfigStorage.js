@@ -1,14 +1,14 @@
 var expect = require('chai').expect
 
-var storage = require('../src/storage')
-var SyncStorage = require('../src/storage/SyncStorage')
+var ConfigStorage = require('../src/ConfigStorage')
+var SyncStorage = require('../src/SyncStorage')
 
 
-describe('storage.ConfigStorage', function() {
+describe('ConfigStorage', function() {
   var cStorage
 
   beforeEach(function() {
-    cStorage = new storage.ConfigStorage()
+    cStorage = new ConfigStorage()
   })
 
   afterEach(function() {
@@ -17,7 +17,7 @@ describe('storage.ConfigStorage', function() {
 
   it('inherits SyncStorage', function() {
     expect(cStorage).to.be.instanceof(SyncStorage)
-    expect(cStorage).to.be.instanceof(storage.ConfigStorage)
+    expect(cStorage).to.be.instanceof(ConfigStorage)
   })
 
   it('set/get', function() {

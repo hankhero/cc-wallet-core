@@ -1,9 +1,8 @@
-var assert = require('assert')
 var inherits = require('util').inherits
 
 var _ = require('lodash')
 
-var SyncStorage = require('./SyncStorage')
+var SyncStorage = require('../SyncStorage')
 
 
 /**
@@ -22,10 +21,10 @@ var SyncStorage = require('./SyncStorage')
 function AssetDefinitionStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
 
-  this.assetDefinitionsDBKey = this.globalPrefix + 'AssetDefinitions'
+  this.dbKey = this.globalPrefix + 'AssetDefinitions'
 
-  if (!_.isObject(this.store.get(this.assetDefinitionsDBKey)))
-    this.store.set(this.assetDefinitionsDBKey, [])
+  if (!_.isObject(this.store.get(this.dbKey)))
+    this.store.set(this.dbKey, [])
 }
 
 inherits(AssetDefinitionStorage, SyncStorage)
@@ -36,7 +35,7 @@ inherits(AssetDefinitionStorage, SyncStorage)
  * @throws {?Error} If data.id or moniker from data.monikers already exists
  */
 AssetDefinitionStorage.prototype.add = function(data) {
-  var records = this.store.get(this.assetDefinitionsDBKey) || []
+  var records = this.store.get(this.dbKey) || []
   records.forEach(function(record) {
     if (record.id === data.id)
       throw new Error('exists asset already have same id')
@@ -57,7 +56,7 @@ AssetDefinitionStorage.prototype.add = function(data) {
     unit: data.unit
   })
 
-  this.store.set(this.assetDefinitionsDBKey, records)
+  this.store.set(this.dbKey, records)
 }
 
 /**
@@ -79,7 +78,7 @@ AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
  * @return {AssetDefinitionRecord[]}
  */
 AssetDefinitionStorage.prototype.getAll  =function() {
-  var records = this.store.get(this.assetDefinitionsDBKey) || []
+  var records = this.store.get(this.dbKey) || []
   return records
 }
 
@@ -87,7 +86,7 @@ AssetDefinitionStorage.prototype.getAll  =function() {
  * Drop all asset definions
  */
 AssetDefinitionStorage.prototype.clear = function() {
-  this.store.remove(this.assetDefinitionsDBKey)
+  this.store.remove(this.dbKey)
 }
 
 

@@ -5,8 +5,8 @@ var cclib = require('coloredcoinjs-lib')
 
 var AssetTx = require('./AssetTx')
 var OperationalTx = require('./OperationalTx')
-var ComposedTx = cclib.tx.ComposedTx
-var Transaction = cclib.tx.Transaction
+var ComposedTx = cclib.ComposedTx
+var Transaction = cclib.Transaction
 
 
 /**
@@ -126,8 +126,6 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
  * @param {TxTranformer~transformComposedTx} cb
  */
 TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb) {
-  var self = this
-
   Q.fcall(function() {
     if (['signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform composedTx')
@@ -145,7 +143,7 @@ TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb
       tx.sign(index, privKey)
     })
 
-    var ccTx = new cclib.tx.Transaction()
+    var ccTx = new cclib.Transaction()
     ccTx.version = tx.version
     ccTx.locktime = tx.locktime
     ccTx.ins = tx.ins

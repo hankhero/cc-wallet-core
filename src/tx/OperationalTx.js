@@ -9,13 +9,12 @@ var cclib = require('coloredcoinjs-lib')
  * @param {Wallet} wallet
  * @param {AssetDefinition} assetdef
  */
-function OperationalTx(wallet, assetdef) {
+function OperationalTx(wallet) {
   this.wallet = wallet
-  this.assetdef = assetdef
   this.targets = []
 }
 
-util.inherits(OperationalTx, cclib.tx.OperationalTx)
+util.inherits(OperationalTx, cclib.OperationalTx)
 
 /**
  * Add ColorTarget to current tx
@@ -70,14 +69,14 @@ OperationalTx.prototype.getRequiredFee = function(txSize) {
   var baseFee = 10000
   var feeValue = Math.ceil((txSize * baseFee) / 1000)
 
-  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), feeValue)
+  return new cclib.ColorValue(new cclib.UncoloredColorDefinition(), feeValue)
 }
 
 /**
  * @return {ColorValue}
  */
 OperationalTx.prototype.getDustThreshold = function() {
-  return new cclib.color.ColorValue(new cclib.color.UncoloredColorDefinition(), 5500)
+  return new cclib.ColorValue(new cclib.UncoloredColorDefinition(), 5500)
 }
 
 /**
@@ -106,19 +105,21 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     var coinQuery = self.wallet.getCoinQuery()
     coinQuery = coinQuery.onlyColoredAs(colordef)
     coinQuery = coinQuery.onlyAddresses(self.wallet.getAllAddresses(colordef))
+    coinQuery = coinQuery.includeUnconfirmed() // Todo: need wait confirmation? may be as option
 
     return Q.ninvoke(coinQuery, 'getCoins')
 
   }).then(function(coinList) {
     var coins = coinList.getCoins()
 
-    var selectedCoinsColorValue = new cclib.color.ColorValue(colordef, 0)
+    var selectedCoinsColorValue = new cclib.ColorValue(colordef, 0)
     var selectedCoins = []
 
     var requiredSum = colorValue.clone()
     if (feeEstimator !== null)
       requiredSum = requiredSum.plus(feeEstimator.estimateRequiredFee({ extraTxIns: coins.length }))
 
+/*
     function appendUntil(index) {
       if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
         return { coins: selectedCoins, value: selectedCoinsColorValue }
@@ -137,6 +138,27 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     }
 
     return appendUntil(0)
+*/
+    var promise = Q()
+    coins.forEach(function(coin) {
+      promise = promise.then(function() {
+        if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
+          return
+
+        return Q.ninvoke(coin, 'getMainColorValue').then(function(coinColorValue) {
+          selectedCoinsColorValue = selectedCoinsColorValue.plus(coinColorValue)
+          selectedCoins.push(coin)
+        })
+      })
+    })
+
+    return promise.then(function() {
+      if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
+        return { coins: selectedCoins, value: selectedCoinsColorValue }
+
+      throw new Error(
+        'not enough coins: ' + requiredSum.getValue() + ' requested, ' + selectedCoinsColorValue.getValue() +' found')
+    })
 
   }).done(function(data) { cb(null, data.coins, data.value) }, function(error) { cb(error) })
 }

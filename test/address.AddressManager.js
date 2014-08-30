@@ -4,11 +4,10 @@ var bitcoin = require('bitcoinjs-lib')
 var networks = bitcoin.networks
 var cclib = require('coloredcoinjs-lib')
 
-var AddressManager = require('../src/address').AddressManager
-var storage = require('../src/storage')
+var address = require('../src/address')
 
 
-describe('AddressManager', function() {
+describe('address.AddressManager', function() {
   var cdStorage, cdManager, uncolored
   var am, amStorage
 
@@ -17,11 +16,11 @@ describe('AddressManager', function() {
   var address0 = '18KMigSHDPVFzsgWe1mcaPPA5wSY3Ur5wS'
 
   beforeEach(function() {
-    cdStorage = new cclib.storage.ColorDefinitionStorage()
-    cdManager = new cclib.color.ColorDefinitionManager(cdStorage)
+    cdStorage = new cclib.ColorDefinitionStorage()
+    cdManager = new cclib.ColorDefinitionManager(cdStorage)
     uncolored = cdManager.getUncolored()
-    amStorage = new storage.AddressStorage()
-    am = new AddressManager(amStorage)
+    amStorage = new address.AddressStorage()
+    am = new address.AddressManager(amStorage)
   })
 
   afterEach(function() {
@@ -80,8 +79,8 @@ describe('AddressManager', function() {
     it('addPubKey throw error', function() {
       am.getNewAddress(uncolored)
       var pubKeyHex = am.getNewAddress(uncolored).pubKey.toHex()
-      am.amStorage.store.set(am.amStorage.pubKeysDBKey, []) // not good
-      am.amStorage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex })
+      am.storage.store.set(am.storage.pubKeysDBKey, []) // not good
+      am.storage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex })
       var fn = function() { am.getNewAddress(uncolored) }
       expect(fn).to.throw(Error)
     })

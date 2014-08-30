@@ -15,7 +15,7 @@ var cclib = require('coloredcoinjs-lib')
 /**
  * @class AssetDefinition
 
- * @param {coloredcoinjs-lib.color.ColorDefinitionManager} colorDefinitionManager
+ * @param {coloredcoinjs-lib.ColorDefinitionManager} colorDefinitionManager
  * @param {AssetDefinitionDesc} data
  * @throws {Error} If data.unit not power of 10
  */
@@ -27,7 +27,7 @@ function AssetDefinition(colorDefinitionManager, data) {
     throw new Error('data.unit must be power of 10 and greater than 0')
 
   this.monikers = data.monikers
-  this.colorSet = new cclib.color.ColorSet(colorDefinitionManager, data.colorSchemes)
+  this.colorSet = new cclib.ColorSet(colorDefinitionManager, data.colorSchemes)
   this.unit = data.unit
 }
 

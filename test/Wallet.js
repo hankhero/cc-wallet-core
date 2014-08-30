@@ -4,6 +4,7 @@ var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
+var coin = require('../src/coin')
 var Wallet = require('../src/index')
 
 
@@ -19,50 +20,69 @@ describe('Wallet', function() {
     wallet.clearStorage()
   })
 
-  it('_getCoinQuery return CoinQuery instance', function() {
-    expect(wallet.getCoinQuery()).to.be.instanceof(cclib.coin.CoinQuery)
+  it('getCoinQuery return CoinQuery instance', function() {
+    expect(wallet.getCoinQuery()).to.be.instanceof(coin.CoinQuery)
   })
 
   it('sendCoins', function(done) {
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
 
-    var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
-    var address = wallet.getSomeAddress(bitcoin)
-    //console.log('Address from: ' + address)
-    //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
-    var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
-    wallet.sendCoins(bitcoin, targets, function(error, txId) {
-      //console.log(error, txId)
+    wallet.fullScanAllAddresses(function(error) {
       expect(error).to.be.null
-      expect(txId).to.be.an('string').with.to.have.length(64)
-      done()
+
+      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      var address = wallet.getSomeAddress(bitcoin)
+      //console.log('Address from: ' + address)
+      //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
+      var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+      wallet.sendCoins(bitcoin, targets, function(error, txId) {
+        expect(error).to.be.null
+        expect(txId).to.be.an('string').with.to.have.length(64)
+        done()
+      })
     })
   })
 
-  // Need new issued asset, this very long scanned
+  it('issueCoins epobc', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
+
+    wallet.fullScanAllAddresses(function(error) {
+      expect(error).to.be.null
+
+      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      var address = wallet.getSomeAddress(bitcoin)
+
+      wallet.issueCoins('gold', 'epobc', 5, 10000, function(error) {
+        if (error) throw error
+        expect(error).to.be.null
+        done()
+      })
+    })
+  })
+
+  // Need new issued asset, this broken
   it.skip('sendCoins epobc', function(done) {
-    // For scan all chain color transactions need time
-    this.timeout(30000)
-
-    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bc', testnet: true })
-
+    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bd', testnet: true })
     var data = {
       monikers: ['gold'],
-      colorSchemes: ['epobc:73560ffd916267a70a1233eb63d5d97e79e7eac981a52860df1ac38d2568b3a5:0:274664'],
+      colorSchemes: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
       unit: 10000
     }
     var assetdef = wallet.addAssetDefinition(data)
-    var address = wallet.getSomeAddress(assetdef)
-    //console.log('Address from: ' + address)
-    //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
-    var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
-    //wallet.getAvailableBalance(assetdef, function(error, balance) {
-      //console.log(error, balance, assetdef.formatValue(balance))
-    wallet.sendCoins(assetdef, targets, function(error, txId) {
-      //console.log(error, txId)
+
+    wallet.fullScanAllAddresses(function(error) {
       expect(error).to.be.null
-      expect(txId).to.be.an('string').with.to.have.length(64)
-      done()
+
+      var address = wallet.getSomeAddress(assetdef)
+      //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
+      var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+      //wallet.getAvailableBalance(assetdef, function(error, balance) {
+        //console.log(error, balance, assetdef.formatValue(balance))
+      wallet.sendCoins(assetdef, targets, function(error, txId) {
+        expect(error).to.be.null
+        expect(txId).to.be.an('string').with.to.have.length(64)
+        done()
+      })
     })
   })
 
@@ -144,7 +164,7 @@ describe('Wallet', function() {
   describe('balance methods', function() {
     var bitcoin, epobc
 
-    beforeEach(function() {
+    beforeEach(function(done) {
       var result = wallet.addAssetDefinition({
         monikers: ['gold'],
         colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
@@ -153,6 +173,11 @@ describe('Wallet', function() {
       expect(result).to.be.instanceof(AssetDefinition)
       bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
       epobc = wallet.getAssetDefinitionByMoniker('gold')
+
+      wallet.fullScanAllAddresses(function(error) {
+        expect(error).to.be.null
+        done()
+      })
     })
 
     it('getAvailableBalance for bitcoin', function(done) {
