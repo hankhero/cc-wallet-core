@@ -8,6 +8,7 @@
  * @param {number} rawCoin.value
  * @param {string} rawCoin.script
  * @param {string} rawCoin.address
+ * @param {boolean} rawCoin.spend
  */
 function Coin(coinManager, rawCoin) {
   this.coinManager = coinManager
@@ -17,6 +18,7 @@ function Coin(coinManager, rawCoin) {
   this.value = rawCoin.value
   this.script = rawCoin.script
   this.address = rawCoin.address
+  this.spend = rawCoin.spend
 }
 
 /**

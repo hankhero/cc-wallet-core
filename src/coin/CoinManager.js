@@ -37,7 +37,8 @@ CoinManager.prototype.applyTx = function(tx, cb) {
 
     tx.ins.forEach(function(input) {
       var txId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
-      self.storage.markCoinAsSpend(txId, input.index)
+      if (self.storage.get(txId, input.index) !== null)
+        self.storage.markCoinAsSpend(txId, input.index)
     })
 
     var promises = tx.outs.map(function(output, index) {
@@ -45,7 +46,7 @@ CoinManager.prototype.applyTx = function(tx, cb) {
       var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
 
       if (addresses.indexOf(address) === -1)
-        return Q()
+        return
 
       self.storage.add({
         txId: tx.getId(),
@@ -74,7 +75,8 @@ CoinManager.prototype.record2Coin = function(record) {
     outIndex: record.outIndex,
     value: record.value,
     script: record.script,
-    address: record.address
+    address: record.address,
+    spend: record.spend
   })
 
   return coin
@@ -94,7 +96,7 @@ CoinManager.prototype.getCoinsForAddress = function(address) {
  * @return {boolean}
  */
 CoinManager.prototype.isCoinSpent = function(coin) {
-  return this.storage.isSpent(coin.txId, coin.outIndex)
+  return coin.spend
 }
 
 /**

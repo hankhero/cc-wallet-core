@@ -12,6 +12,7 @@ var SyncStorage = require('../SyncStorage')
  * @property {number} value
  * @property {string} script
  * @property {string} address
+ * @property {boolean} [spend=false]
  */
 
 /**
@@ -31,10 +32,6 @@ function CoinStorage() {
   this.coinsDbKey = this.globalPrefix + 'coins'
   if (!_.isArray(this.store.get(this.coinsDbKey)))
     this.store.set(this.coinsDbKey, [])
-
-  this.spentDbKey = this.globalPrefix + 'spentCoins'
-  if (!_.isArray(this.store.get(this.spentCoins)))
-    this.store.set(this.spentCoins, {})
 }
 
 inherits(CoinStorage, SyncStorage)
@@ -46,6 +43,7 @@ inherits(CoinStorage, SyncStorage)
  * @param {number} rawCoin.value
  * @param {string} rawCoin.script
  * @param {string} rawCoin.address
+ * @param {boolean} [rawCoin.spend=false]
  * @throws {Error} If coin already exists
  */
 CoinStorage.prototype.add = function(rawCoin) {
@@ -60,7 +58,26 @@ CoinStorage.prototype.add = function(rawCoin) {
     outIndex: rawCoin.outIndex,
     value: rawCoin.value,
     script: rawCoin.script,
-    address: rawCoin.address
+    address: rawCoin.address,
+    spend: false
+  })
+
+  this.store.set(this.coinsDbKey, records)
+}
+
+/**
+ * @param {string} txId
+ * @param {number} outIndex
+ * @throws {Error} If coin not exists
+ */
+CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
+  if (this.get(txId, outIndex) === null)
+    throw new Error('Coin not exists')
+
+  var records = this.getAll()
+  records.forEach(function(record) {
+    if (record.txId === txId && record.outIndex === outIndex)
+      record.spend = true
   })
 
   this.store.set(this.coinsDbKey, records)
@@ -100,28 +117,6 @@ CoinStorage.prototype.getForAddress = function(address) {
 CoinStorage.prototype.getAll = function() {
   var coins = this.store.get(this.coinsDbKey) || []
   return coins
-}
-
-/**
- * @param {string} txId
- * @param {number} outIndex
- */
-CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
-  if (this.isSpent(txId, outIndex))
-    return
-
-  var records = this.store.get(this.spentDbKey) || {}
-  records[txId + outIndex] = true
-  this.store.set(this.spentDbKey, records)
-}
-
-/**
- * @param {string} txId
- * @param {number} outIndex
- */
-CoinStorage.prototype.isSpent = function(txId, outIndex) {
-  var records = this.store.get(this.spentDbKey) || {}
-  return !_.isUndefined(records[txId + outIndex])
 }
 
 /**
