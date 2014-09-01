@@ -7,6 +7,7 @@ var address = require('./address')
 var asset = require('./asset')
 var blockchain = require('./blockchain')
 var coin = require('./coin')
+var history = require('./history')
 var tx = require('./tx')
 
 
@@ -51,8 +52,10 @@ function Wallet(opts) {
   this.coinStorage = new coin.CoinStorage()
   this.coinManager = new coin.CoinManager(this, this.coinStorage)
 
+  this.historyManager = new history.HistoryManager(this)
+
   this.txStorage = new tx.TxStorage()
-  this.txDb = new tx.NaiveTxDb(this.txStorage, this.coinManager, this.blockchain)
+  this.txDb = new tx.NaiveTxDb(this, this.txStorage)
   this.blockchain.txDb = this.txDb // not good, but else sendCoins with addUnconfirmedTx not working
   this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
 
@@ -67,9 +70,13 @@ Wallet.prototype.getColorDefinitionManager = function() { return this.cdManager 
 
 Wallet.prototype.getColorData = function() { return this.cData }
 
-Wallet.prototype.getAddressManager = function() { return this.adManager }
+Wallet.prototype.getAddressManager = function() { return this.aManager }
+
+Wallet.prototype.getAssetDefinitionManager = function() { return this.adManager }
 
 Wallet.prototype.getCoinManager = function() { return this.coinManager }
+
+Wallet.prototype.getHistoryManager = function() { return this.historyManager }
 
 Wallet.prototype.getTxDb = function() { return this.txDb }
 
@@ -399,7 +406,22 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
  * @param {Wallet~getHistory} cb
  */
 Wallet.prototype.getHistory = function(assetdef, cb) {
+  var self = this
 
+  Q.fcall(function() {
+    return Q.ninvoke(self.historyManager, 'getEntries')
+
+  }).then(function(entries) {
+    var assetId = assetdef.getId()
+
+    entries = entries.filter(function(entry) {
+      var assetIds = entry.assetValues.map(function(av) { return av.getAsset().getId() })
+      return assetIds.indexOf(assetId) !== -1
+    })
+
+    return entries
+
+  }).done(function(entries) { cb(null, entries) }, function(error) { cb(error) })
 }
 
 /**

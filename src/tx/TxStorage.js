@@ -10,7 +10,7 @@ var SyncStorage = require('../SyncStorage')
  * @property {string} txId
  * @property {string} rawTx
  * @property {number} status
- * @property {number} blockHeight
+ * @property {number} [blockHeight=undefined]
  */
 
 /**
@@ -44,7 +44,7 @@ TxStorage.prototype.addTx = function(txId, rawTx, status) {
     txId: txId,
     rawTx: rawTx,
     status: status,
-    blockHeight: null
+    blockHeight: undefined
   }
 
   this.store.set(this.dbKey, records)
@@ -85,7 +85,7 @@ TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
 /**
  * @return {?TxStorageRecord}
  */
-TxStorage.prototype.getTxById = function(txId) {
+TxStorage.prototype.getByTxId = function(txId) {
   var record = this.getAll()[txId] || null
   return record
 }

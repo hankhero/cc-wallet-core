@@ -43,6 +43,21 @@ describe('Wallet', function() {
     })
   })
 
+  it('bitcoin history', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
+
+    wallet.fullScanAllAddresses(function(error) {
+      expect(error).to.be.null
+
+      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      wallet.getHistory(bitcoin, function(error, entries) {
+        expect(error).to.be.null
+        expect(entries).to.be.instanceof(Array)
+        done()
+      })
+    })
+  })
+
   it('issueCoins epobc', function(done) {
     wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
 

@@ -57,6 +57,19 @@ AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
 }
 
 /**
+ * @param {string} scheme
+ * @return {?AssetDefinition}
+ */
+AssetDefinitionManager.prototype.getByScheme = function(scheme) {
+  var result = this.storage.getByScheme(scheme)
+
+  if (result !== null)
+    result = new AssetDefinition(this.cdManager, result)
+
+  return result
+}
+
+/**
  * @return {AssetDefinition[]}
  */
 AssetDefinitionManager.prototype.getAllAssets = function() {

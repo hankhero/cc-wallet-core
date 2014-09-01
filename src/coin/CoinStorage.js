@@ -6,6 +6,13 @@ var SyncStorage = require('../SyncStorage')
 
 
 /**
+ * Todo: need separate tables..
+ * Block can contains not linking transaction (toposort not be working)
+ *  and later transaction may be apply before early,
+ *  then early tx coins not be spends in our TxDb, but in fact it's will be spends
+ */
+
+/**
  * @typedef {Object} CoinStorageRecord
  * @property {string} txId
  * @property {number} outIndex

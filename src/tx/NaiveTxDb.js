@@ -27,7 +27,12 @@ inherits(NaiveTxDb, BaseTxDb)
  * @param {NaiveTxDb~identifyTxStatus} cb
  */
 NaiveTxDb.prototype.identifyTxStatus = function(txId, cb) {
-  Q.ninvoke(this.bs, 'getTxBlockHash', txId).catch(function(error) {
+  var self = this
+
+  Q.fcall(function() {
+    return Q.ninvoke(self.wallet.getBlockchain(), 'getTxBlockHash', txId)
+
+  }).catch(function(error) {
     if (error instanceof Error && error.message === 'No records found') // Only Blockr interface
       return BaseTxDb.TxStatusInvalid
 

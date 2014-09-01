@@ -6,5 +6,7 @@ module.exports = {
 
   TxStorage: require('./TxStorage'),
   NaiveTxDb: require('./NaiveTxDb'),
-  TxFetcher: require('./TxFetcher')
+  TxFetcher: require('./TxFetcher'),
+
+  toposort: require('./toposort')
 }

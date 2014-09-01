@@ -1,6 +1,8 @@
 var _ = require('lodash')
 var Q = require('q')
 
+var toposort = require('./toposort')
+
 
 /**
  * @callback TxFetcher~errorCallback
@@ -46,35 +48,7 @@ TxFetcher.prototype._addRecords = function(records) {
       })
       .value()
 
-    return Q.all(promises)
-
-  }).then(function(transactions) {
-    var transactionsIds = _.zipObject(transactions.map(function(tx) { return [tx.getId(), tx] }))
-    var result = []
-    var resultIds = []
-
-    function toposort(tx, topTx) {
-      if (resultIds.indexOf(tx.getId()) !== -1)
-        return
-
-      tx.ins.forEach(function(input) {
-        var inputId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
-        if (_.isUndefined(transactionsIds[inputId]))
-          return
-
-        if (transactionsIds[inputId].getId() === topTx.getId())
-          throw new Error('graph is cyclical')
-
-        toposort(transactionsIds[inputId], tx)
-      })
-
-      result.push(tx)
-      resultIds.push(tx.getId())
-    }
-
-    transactions.forEach(function(tx) { toposort(tx, tx) })
-
-    return result
+    return Q.all(promises).then(toposort)
 
   }).then(function(transactions) {
     var promise = Q()

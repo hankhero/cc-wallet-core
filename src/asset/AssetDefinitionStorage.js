@@ -74,6 +74,21 @@ AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
   return records[0]
 }
 
+/**
+ * @param {string} scheme
+ * @return {?AssetDefinitionRecord}
+ */
+AssetDefinitionStorage.prototype.getByScheme = function(scheme) {
+  var records = this.getAll().filter(function(record) {
+    return (record.colorSchemes.indexOf(scheme) !== -1)
+  })
+
+  if (records.length === 0)
+    return null
+
+  return records[0]
+}
+
 /*
  * @return {AssetDefinitionRecord[]}
  */

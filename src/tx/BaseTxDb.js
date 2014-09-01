@@ -9,15 +9,13 @@ var RecheckInterval = 60 * 1000
 /**
  * @class BaseTxDb
  *
- * @param {TxStorage} txStorage
- * @param {CoinManager} coinManager
- * @param {BlockchainBase} bs
+ * @param {Wallet} wallet
+ * @param {TxStorage} storage
  */
-// Todo: reorg blockchain and double-spending
-function BaseTxDb(txStorage, coinManager, bs) {
-  this.txStorage = txStorage
-  this.coinManager = coinManager
-  this.bs = bs
+// Todo: blockchain reorg and double-spending
+function BaseTxDb(wallet, storage) {
+  this.wallet = wallet
+  this.storage = storage
 
   this.lastStatusCheck = LRU({ maxAge: RecheckInterval })
 }
@@ -51,7 +49,7 @@ BaseTxDb.prototype.addTx = function(tx, status, cb) {
   Q.fcall(function() {
     var txId = tx.getId()
 
-    var record = self.txStorage.getTxById(txId)
+    var record = self.storage.getByTxId(txId)
     if (record !== null)
       return Q.ninvoke(self, 'maybeRecheckTxStatus', record.txId, record.status)
 
@@ -61,12 +59,15 @@ BaseTxDb.prototype.addTx = function(tx, status, cb) {
       return status
 
     }).then(function(status) {
-      self.txStorage.addTx(txId, tx.toHex(), status)
+      self.storage.addTx(txId, tx.toHex(), status)
       return Q.ninvoke(self, 'updateTxBlockHeight', txId, status)
 
     }).then(function() {
       self.lastStatusCheck.set(txId, true)
-      return Q.ninvoke(self.coinManager, 'applyTx', tx)
+      return Q.ninvoke(self.wallet.getCoinManager(), 'applyTx', tx)
+
+    }).then(function() {
+      //return Q.ninvoke(self.wallet.getHistoryManager(), 'applyTx', tx)
 
     })
 
@@ -75,14 +76,26 @@ BaseTxDb.prototype.addTx = function(tx, status, cb) {
 
 /**
  * @param {string} txId
- * @return {?coloredcoinjs-lib.Transaction} tx
+ * @return {?coloredcoinjs-lib.Transaction}
  */
 BaseTxDb.prototype.getTxById = function(txId) {
-  var record = this.txStorage.getTxById(txId)
+  var record = this.storage.getByTxId(txId)
   if (record === null)
     return null
 
   return cclib.Transaction.fromHex(record.rawTx)
+}
+
+/**
+ * @param {string} txId
+ * @return {?number}
+ */
+BaseTxDb.prototype.getBlockHeightByTxId = function(txId) {
+  var record = this.storage.getByTxId(txId)
+  if (record === null)
+    return null
+
+  return record.blockHeight
 }
 
 /**
@@ -103,7 +116,7 @@ BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
     self.lastStatusCheck.set(txId, true)
 
     return Q.ninvoke(self, 'identifyTxStatus', txId).then(function(status) {
-      self.txStorage.setTxStatus(txId, status)
+      self.storage.setTxStatus(txId, status)
       return Q.ninvoke(self, 'updateTxBlockHeight', txId, status)
 
     })
@@ -123,11 +136,14 @@ BaseTxDb.prototype.updateTxBlockHeight = function(txId, status, cb) {
     if (status !== BaseTxDb.TxStatusConfirmed)
       return
 
-    return Q.ninvoke(self.bs, 'getTxBlockHash', txId).then(function(blockHash) {
-      return Q.ninvoke(self.bs, 'getBlockHeight', blockHash)
+    return Q.fcall(function() {
+      return Q.ninvoke(self.wallet.getBlockchain(), 'getTxBlockHash', txId)
+
+    }).then(function(blockHash) {
+      return Q.ninvoke(self.wallet.getBlockchain(), 'getBlockHeight', blockHash)
 
     }).then(function(height) {
-      self.txStorage.setBlockHeight(txId, height)
+      self.storage.setBlockHeight(txId, height)
 
     })
 
@@ -148,7 +164,7 @@ BaseTxDb.prototype.isTxConfirmed = function(txId, cb) {
   var self = this
 
   Q.fcall(function() {
-    var record = self.txStorage.getTxById(txId)
+    var record = self.storage.getByTxId(txId)
     if (record === null)
       throw new Error('Tx not found')
 
@@ -180,7 +196,7 @@ BaseTxDb.prototype.isTxValid = function(txId, cb) {
   var self = this
 
   Q.fcall(function() {
-    var record = self.txStorage.getTxById(txId)
+    var record = self.storage.getTxById(txId)
     if (record === null)
       throw new Error('Tx not found')
 
