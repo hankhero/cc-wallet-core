@@ -3,10 +3,7 @@ var Q = require('q')
 
 var AssetValue = require('../asset').AssetValue
 var toposort = require('../tx').toposort
-
-var HistoryEntryPaymentToYourself = require('./HistoryEntryPaymentToYourself')
-var HistoryEntryReceive = require('./HistoryEntryReceive')
-var HistoryEntrySend = require('./HistoryEntrySend')
+var HistoryEntry = require('./HistoryEntry')
 
 
 /**
@@ -93,18 +90,19 @@ HistoryManager.prototype.getEntries = function(cb) {
           assetValues[assetdef.getId()] = new AssetValue(assetdef, cv.getValue())
         })
 
-        var HistoryEntryCls = HistoryEntrySend
+        var entryType = HistoryEntry.entryTypes.Send
         if (_.filter(outs).length === 0)
-          HistoryEntryCls = HistoryEntryReceive
+          entryType = HistoryEntry.entryTypes.Receive
         if (_.filter(ins).length === tx.ins.length && _.filter(outs).length === tx.outs.length)
-          HistoryEntryCls = HistoryEntryPaymentToYourself
+          entryType = HistoryEntry.entryTypes.PaymentToYourself
 
-        entries.push(new HistoryEntryCls({
+        entries.push(new HistoryEntry({
           tx: tx,
           blockHeight: txEntries[tx.getId()].blockHeight,
           timestamp: undefined, // ?
           colorValues: _.values(colorValues),
-          assetValues: _.values(assetValues)
+          assetValues: _.values(assetValues),
+          entryType: entryType
         }))
       })
     })
