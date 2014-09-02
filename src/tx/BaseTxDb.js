@@ -31,43 +31,45 @@ BaseTxDb.TxStatusInvalid = 3
  */
 
 /**
- * @param {coloredcoinjs-lib.Transaction} tx
+ * @param {Object} data
+ * @param {coloredcoinjs-lib.Transaction} data.tx
+ * @param {number} [data.timestamp]
  * @param {BaseTxDb~errorCallback} cb
  */
-BaseTxDb.prototype.addUnconfirmedTx = function(tx, cb) {
-  this.addTx(tx, BaseTxDb.TxStatusUnconfirmed, cb)
+BaseTxDb.prototype.addUnconfirmedTx = function(data, cb) {
+  data = _.extend(data, { status: BaseTxDb.TxStatusUnconfirmed })
+  this.addTx(data, cb)
 }
 
 /**
- * @param {coloredcoinjs-lib.Transaction} tx
- * @param {?number} status
+ * @param {Object} data
+ * @param {coloredcoinjs-lib.Transaction} data.tx
+ * @param {number} [data.status]
+ * @param {number} [data.timestamp]
  * @param {BaseTxDb~errorCallback} cb
  */
-BaseTxDb.prototype.addTx = function(tx, status, cb) {
+BaseTxDb.prototype.addTx = function(data, cb) {
   var self = this
 
   Q.fcall(function() {
-    var txId = tx.getId()
+    var txId = data.tx.getId()
 
     var record = self.storage.getByTxId(txId)
     if (record !== null)
       return Q.ninvoke(self, 'maybeRecheckTxStatus', record.txId, record.status)
 
     return Q.fcall(function() {
-      if (status === null)
+      if (_.isUndefined(data.status))
         return Q.ninvoke(self, 'identifyTxStatus', txId)
-      return status
+      return data.status
 
     }).then(function(status) {
-      self.storage.addTx(txId, tx.toHex(), status)
+      self.storage.addTx(txId, data.tx.toHex(), status, data.timestamp)
       return Q.ninvoke(self, 'updateTxBlockHeight', txId, status)
 
     }).then(function() {
       self.lastStatusCheck.set(txId, true)
-      return Q.ninvoke(self.wallet.getCoinManager(), 'applyTx', tx)
-
-    }).then(function() {
-      //return Q.ninvoke(self.wallet.getHistoryManager(), 'applyTx', tx)
+      return Q.ninvoke(self.wallet.getCoinManager(), 'applyTx', data.tx)
 
     })
 
@@ -96,6 +98,18 @@ BaseTxDb.prototype.getBlockHeightByTxId = function(txId) {
     return null
 
   return record.blockHeight
+}
+
+/**
+ * @param {string} txId
+ * @return {?number}
+ */
+BaseTxDb.prototype.getTimestampByTxId = function(txId) {
+  var record = this.storage.getByTxId(txId)
+  if (record === null)
+    return null
+
+  return record.timestamp
 }
 
 /**
@@ -140,11 +154,26 @@ BaseTxDb.prototype.updateTxBlockHeight = function(txId, status, cb) {
       return Q.ninvoke(self.wallet.getBlockchain(), 'getTxBlockHash', txId)
 
     }).then(function(blockHash) {
-      return Q.ninvoke(self.wallet.getBlockchain(), 'getBlockHeight', blockHash)
+      var promise = Q()
 
-    }).then(function(height) {
-      self.storage.setBlockHeight(txId, height)
+      if (_.isUndefined(self.storage.getByTxId(txId).timestamp))
+        promise = promise.then(function() {
+          return Q.ninvoke(self.wallet.getBlockchain(), 'getBlockTime', blockHash)
 
+        }).then(function(timestamp) {
+          self.storage.setTimestamp(txId, timestamp)
+
+        })
+
+      promise = promise.then(function() {
+        return Q.ninvoke(self.wallet.getBlockchain(), 'getBlockHeight', blockHash)
+
+      }).then(function(height) {
+        self.storage.setBlockHeight(txId, height)
+
+      })
+
+      return promise
     })
 
   }).done(function() { cb(null) }, function(error) { cb(error) })

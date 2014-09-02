@@ -32,7 +32,8 @@ HistoryManager.prototype.getEntries = function(cb) {
       .map(function(txId) {
         var entry = {
           tx: txDb.getTxById(txId),
-          blockHeight: txDb.getBlockHeightByTxId(txId)
+          blockHeight: txDb.getBlockHeightByTxId(txId),
+          timestamp: txDb.getTimestampByTxId(txId)
         }
         if (entry.tx === null)
           throw new Error('txId ' + txId + ' not found in txDb')
@@ -91,7 +92,7 @@ HistoryManager.prototype.getEntries = function(cb) {
         })
 
         var entryType = HistoryEntry.entryTypes.Send
-        if (_.filter(outs).length === 0)
+        if (_.filter(ins).length === 0)
           entryType = HistoryEntry.entryTypes.Receive
         if (_.filter(ins).length === tx.ins.length && _.filter(outs).length === tx.outs.length)
           entryType = HistoryEntry.entryTypes.PaymentToYourself
@@ -99,7 +100,7 @@ HistoryManager.prototype.getEntries = function(cb) {
         entries.push(new HistoryEntry({
           tx: tx,
           blockHeight: txEntries[tx.getId()].blockHeight,
-          timestamp: undefined, // ?
+          timestamp: txEntries[tx.getId()].timestamp,
           colorValues: _.values(colorValues),
           assetValues: _.values(assetValues),
           entryType: entryType

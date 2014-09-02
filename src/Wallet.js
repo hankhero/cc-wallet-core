@@ -343,7 +343,8 @@ Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
         unit: atoms
       })
 
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+      var timestamp = Math.round(+new Date())
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
     })
 
   }).done(function() { cb(null) }, function(error) { cb(error) })
@@ -385,7 +386,8 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
       return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
 
     }).then(function() {
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+      var timestamp = Math.round(+new Date())
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
 
     }).then(function() {
       return signedTx.getId()

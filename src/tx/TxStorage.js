@@ -11,6 +11,7 @@ var SyncStorage = require('../SyncStorage')
  * @property {string} rawTx
  * @property {number} status
  * @property {number} [blockHeight=undefined]
+ * @property {number} [timestamp=undefined]
  */
 
 /**
@@ -33,9 +34,10 @@ inherits(TxStorage, SyncStorage)
  * @param {string} txId
  * @param {string} rawTx
  * @param {number} status
+ * @param {number} timestamp
  * @throws {Error} If txId exists
  */
-TxStorage.prototype.addTx = function(txId, rawTx, status) {
+TxStorage.prototype.addTx = function(txId, rawTx, status, timestamp) {
   var records = this.getAll()
   if (!_.isUndefined(records[txId]))
     throw new Error('Same tx already exists')
@@ -44,7 +46,8 @@ TxStorage.prototype.addTx = function(txId, rawTx, status) {
     txId: txId,
     rawTx: rawTx,
     status: status,
-    blockHeight: undefined
+    blockHeight: undefined,
+    timestamp: timestamp
   }
 
   this.store.set(this.dbKey, records)
@@ -78,6 +81,22 @@ TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
     throw new Error('txId not exists')
 
   records[txId].blockHeight = blockHeight
+
+  this.store.set(this.dbKey, records)
+}
+
+/**
+ * @param {string} txId
+ * @param {number} timestamp
+ * @throws {Error} If txId not exists
+ */
+TxStorage.prototype.setTimestamp = function(txId, timestamp) {
+  var records = this.getAll()
+
+  if (_.isUndefined(records[txId]))
+    throw new Error('txId not exists')
+
+  records[txId].timestamp = timestamp
 
   this.store.set(this.dbKey, records)
 }

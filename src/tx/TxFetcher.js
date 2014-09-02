@@ -54,7 +54,7 @@ TxFetcher.prototype._addRecords = function(records) {
     var promise = Q()
 
     transactions.forEach(function(tx) {
-      promise = promise.then(function() { return Q.ninvoke(self.txdb, 'addTx', tx, null) })
+      promise = promise.then(function() { return Q.ninvoke(self.txdb, 'addTx', { tx: tx }) })
     })
 
     return promise
