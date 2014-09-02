@@ -6,32 +6,22 @@ var SyncStorage = require('../SyncStorage')
 
 
 /**
- * Todo: need separate tables..
- * Block can contains not linking transaction (toposort not be working)
- *  and later transaction may be apply before early,
- *  then early tx coins not be spends in our TxDb, but in fact it's will be spends
- */
-
-/**
  * @typedef {Object} CoinStorageRecord
  * @property {string} txId
  * @property {number} outIndex
  * @property {number} value
  * @property {string} script
  * @property {string} address
- * @property {boolean} [spend=false]
- */
-
-/**
- * @typedef {Object} SpentCoinStorageRecord
- * @property {string} txId
- * @property {number} outIndex
  */
 
 /**
  * @class CoinStorage
  *
  * Inherits SyncStorage
+ *
+ * Coin spends stored in separate table, because one block
+ *  may contains not linking transactions and then toposort not be working
+ *  It's means that in db coins not be spends, but in fact it's will be spends
  */
 function CoinStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
@@ -39,6 +29,10 @@ function CoinStorage() {
   this.coinsDbKey = this.globalPrefix + 'coins'
   if (!_.isArray(this.store.get(this.coinsDbKey)))
     this.store.set(this.coinsDbKey, [])
+
+  this.spendsDbKey = this.globalPrefix + 'spends'
+  if (!_.isObject(this.store.get(this.spendsDbKey)))
+    this.store.set(this.spendsDbKey, {})
 }
 
 inherits(CoinStorage, SyncStorage)
@@ -50,7 +44,6 @@ inherits(CoinStorage, SyncStorage)
  * @param {number} rawCoin.value
  * @param {string} rawCoin.script
  * @param {string} rawCoin.address
- * @param {boolean} [rawCoin.spend=false]
  * @throws {Error} If coin already exists
  */
 CoinStorage.prototype.add = function(rawCoin) {
@@ -65,26 +58,7 @@ CoinStorage.prototype.add = function(rawCoin) {
     outIndex: rawCoin.outIndex,
     value: rawCoin.value,
     script: rawCoin.script,
-    address: rawCoin.address,
-    spend: false
-  })
-
-  this.store.set(this.coinsDbKey, records)
-}
-
-/**
- * @param {string} txId
- * @param {number} outIndex
- * @throws {Error} If coin not exists
- */
-CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
-  if (this.get(txId, outIndex) === null)
-    throw new Error('Coin not exists')
-
-  var records = this.getAll()
-  records.forEach(function(record) {
-    if (record.txId === txId && record.outIndex === outIndex)
-      record.spend = true
+    address: rawCoin.address
   })
 
   this.store.set(this.coinsDbKey, records)
@@ -127,11 +101,37 @@ CoinStorage.prototype.getAll = function() {
 }
 
 /**
+ * @param {string} txId
+ * @param {number} outIndex
+ */
+CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
+  var spends = this.store.get(this.spendsDbKey) || {}
+  var txSpends = spends[txId] || []
+
+  if (txSpends.indexOf(outIndex) === -1) {
+    txSpends.push(outIndex)
+    spends[txId] = txSpends
+    this.store.set(this.spendsDbKey, spends)
+  }
+}
+
+/**
+ * @param {string} txId
+ * @param {number} outIndex
+ * @return {boolean}
+ */
+CoinStorage.prototype.isSpent = function(txId, outIndex) {
+  var spends = this.store.get(this.spendsDbKey) || {}
+  var txSpends = spends[txId] || []
+  return txSpends.indexOf(outIndex) !== -1
+}
+
+/**
  * Remove all coins
  */
 CoinStorage.prototype.clear = function() {
   this.store.remove(this.coinsDbKey)
-  this.store.remove(this.spentDbKey)
+  this.store.remove(this.spendsDbKey)
 }
 
 

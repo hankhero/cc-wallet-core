@@ -37,8 +37,7 @@ CoinManager.prototype.applyTx = function(tx, cb) {
 
     tx.ins.forEach(function(input) {
       var txId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
-      if (self.storage.get(txId, input.index) !== null)
-        self.storage.markCoinAsSpend(txId, input.index)
+      self.storage.markCoinAsSpend(txId, input.index)
     })
 
     var promises = tx.outs.map(function(output, index) {
@@ -75,8 +74,7 @@ CoinManager.prototype.record2Coin = function(record) {
     outIndex: record.outIndex,
     value: record.value,
     script: record.script,
-    address: record.address,
-    spend: record.spend
+    address: record.address
   })
 
   return coin
@@ -96,7 +94,7 @@ CoinManager.prototype.getCoinsForAddress = function(address) {
  * @return {boolean}
  */
 CoinManager.prototype.isCoinSpent = function(coin) {
-  return coin.spend
+  return this.storage.isSpent(coin.txId, coin.outIndex)
 }
 
 /**
