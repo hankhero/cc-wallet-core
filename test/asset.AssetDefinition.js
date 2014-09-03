@@ -1,6 +1,6 @@
 var expect = require('chai').expect
-
 var cclib = require('coloredcoinjs-lib')
+var _ = require('lodash')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
 
@@ -59,26 +59,39 @@ describe('asset.AssetDefinition', function() {
     ]
 
     fixtures.forEach(function(fixture, index) {
-      it('#' + index, function() {
+      it('#' + (index*2), function() {
         assetdef.unit = fixture.unit
         expect(assetdef.parseValue(fixture.value)).to.deep.equal(fixture.expect)
+      })
+
+      it('#' + (index*2 + 1), function() {
+        if (!_.isNumber(fixture.expect) || fixture.expect === 0)
+          return
+        assetdef.unit = fixture.unit
+        expect(assetdef.parseValue('-'+fixture.value)).to.deep.equal(-fixture.expect)
       })
     })
   })
 
   describe('formatValue', function() {
     var fixtures = [
-      { description: '0 satoshi', value: 0, expect: '0.00000000' },
-      { description: '1 satoshi', value: 1, expect: '0.00000001' },
-      { description: '1 btc minus 1 satoshi', value: 99999999, expect: '0.99999999' },
-      { description: '1 btc', value: 100000000, expect: '1.00000000' },
-      { description: '1 btc plus 1 satoshi', value: 100000001, expect: '1.00000001' },
-      { description: '5 btc plus 345 mbtc', value: 534500000, expect: '5.34500000' }
+      { value: 0,         expect: '0.00000000' },
+      { value: 1,         expect: '0.00000001' },
+      { value: 99999999,  expect: '0.99999999' },
+      { value: 100000000, expect: '1.00000000' },
+      { value: 100000001, expect: '1.00000001' },
+      { value: 534500000, expect: '5.34500000' }
     ]
 
-    fixtures.forEach(function(fixture) {
-      it(fixture.description, function() {
+    fixtures.forEach(function(fixture, index) {
+      it('#' + (index*2), function() {
         expect(assetdef.formatValue(fixture.value)).to.deep.equal(fixture.expect)
+      })
+
+      it('#' + (index*2 + 1), function() {
+        if (fixture.value === 0)
+          return
+        expect(assetdef.formatValue(-fixture.value)).to.deep.equal('-'+fixture.expect)
       })
     })
   })

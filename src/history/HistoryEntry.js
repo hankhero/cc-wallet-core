@@ -10,7 +10,7 @@
  * @param {number} data.entryType
  */
 function HistoryEntry(data) {
-  this.tx = data.tx
+  this.txId = data.tx.getId()
   this.blockHeight = data.blockHeight
   this.timestamp = data.timestamp
   this.colorValues = data.colorValues
@@ -23,6 +23,13 @@ HistoryEntry.entryTypes = {
   Receive: 1,
   PaymentToYourself: 2,
   Issue: 3
+}
+
+/**
+ * @return {string}
+ */
+HistoryEntry.prototype.getTxId = function() {
+  return this.txId
 }
 
 /**

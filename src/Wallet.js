@@ -343,7 +343,8 @@ Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
         unit: atoms
       })
 
-      var timestamp = Math.round(+new Date())
+      var timezoneOffset = new Date().getTimezoneOffset() * 60
+      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
       return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
     })
 
@@ -386,7 +387,8 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
       return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
 
     }).then(function() {
-      var timestamp = Math.round(+new Date())
+      var timezoneOffset = new Date().getTimezoneOffset() * 60
+      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
       return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
 
     }).then(function() {
@@ -400,30 +402,14 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
 /**
  * @callback Wallet~getHistory
  * @param {?Error} error
- * @param {?[]} history
+ * @param {HistoryEntry[]} history
  */
 
 /**
- * @param {AssetDefinition} assetdef
  * @param {Wallet~getHistory} cb
  */
-Wallet.prototype.getHistory = function(assetdef, cb) {
-  var self = this
-
-  Q.fcall(function() {
-    return Q.ninvoke(self.historyManager, 'getEntries')
-
-  }).then(function(entries) {
-    var assetId = assetdef.getId()
-
-    entries = entries.filter(function(entry) {
-      var assetIds = entry.assetValues.map(function(av) { return av.getAsset().getId() })
-      return assetIds.indexOf(assetId) !== -1
-    })
-
-    return entries
-
-  }).done(function(entries) { cb(null, entries) }, function(error) { cb(error) })
+Wallet.prototype.getHistory = function(cb) {
+  this.historyManager.getEntries(cb)
 }
 
 /**

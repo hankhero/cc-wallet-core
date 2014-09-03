@@ -16,7 +16,13 @@ function HistoryManager(wallet) {
 }
 
 /**
- * @return {HistoryEntry[]} entries
+ * @callback HistoryManager~getEntries
+ * @param {?Error} error
+ * @param {HistoryEntry[]} history
+ */
+
+/**
+ * @param {HistoryManager~getEntries} cb
  */
 HistoryManager.prototype.getEntries = function(cb) {
   var self = this

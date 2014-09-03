@@ -79,7 +79,7 @@ AssetDefinition.prototype.parseValue = function(portion) {
     var centValue = parseInt(centString.slice(0, this.unit.toString().length-1))
 
     if (!isNaN(centValue))
-      value += centValue
+      value = value + (parseFloat(portion) >= 0 ? centValue : -centValue)
   }
 
   return value
@@ -92,12 +92,16 @@ AssetDefinition.prototype.parseValue = function(portion) {
 AssetDefinition.prototype.formatValue = function(value) {
   assert(_.isNumber(value), 'Expected number value, got ' + value)
 
-  var centString = (value % this.unit).toString()
+  var coinString = (~~(value/this.unit)).toString()
+  if (coinString === '0' && value < 0)
+    coinString = '-' + coinString
+
+  var centString = Math.abs(value % this.unit).toString()
   var centLength = this.unit.toString().length - 1
   while (centString.length < centLength)
     centString = '0' + centString
 
-  return ~~(value/this.unit) + '.' + centString
+  return coinString + '.' + centString
 }
 
 
