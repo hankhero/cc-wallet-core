@@ -46,7 +46,9 @@ HistoryManager.prototype.getEntries = function(cb) {
 
         return [entry.tx.getId(), entry]
       })
-      .sortBy(function(entry) { return entry[1].blockHeight }) // sort by timestamp as second property
+      .sortBy(function(entry) {
+        return entry[1].blockHeight + entry[1].timestamp/10000000000
+      })
       .value()
 
     var txEntries = _.zipObject(transactions)
