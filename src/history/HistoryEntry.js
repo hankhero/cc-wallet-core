@@ -54,7 +54,7 @@ HistoryEntry.prototype.getValues = function() {
 }
 
 /**
- * @return {ColorTarget[]}
+ * @return {AssetTarget[]}
  */
 HistoryEntry.prototype.getTargets = function() {
   return this.targets

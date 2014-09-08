@@ -130,7 +130,8 @@ HistoryManager.prototype.getEntries = function(cb) {
           var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
           if (assetdef === null)
             throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
-          return new AssetTarget(ct.getAddress(), assetdef)
+          var assetValue = new AssetValue(assetdef, ct.getValue())
+          return new AssetTarget(ct.getAddress(), assetValue)
         })
 
         var entryType = HistoryEntry.entryTypes.Send
