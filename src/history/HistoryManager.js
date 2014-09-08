@@ -1,7 +1,11 @@
+var bitcoin = require('bitcoinjs-lib')
+var cclib = require('coloredcoinjs-lib')
 var _ = require('lodash')
 var Q = require('q')
 
 var AssetValue = require('../asset').AssetValue
+var AssetTarget = require('../asset').AssetTarget
+var Coin = require('../coin').Coin
 var toposort = require('../tx').toposort
 var HistoryEntry = require('./HistoryEntry')
 
@@ -59,16 +63,16 @@ HistoryManager.prototype.getEntries = function(cb) {
     var coins = _.zipObject(coinList.getCoins().map(function(coin) { return [coin.txId+coin.outIndex, coin] }))
 
     toposort(transactions).forEach(function(tx) {
-      var ins = tx.ins.map(function(input) {
+      var ins = _.filter(tx.ins.map(function(input) {
         var txId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
         return coins[txId+input.index]
-      })
-      var outs = tx.outs.map(function(output, index) {
+      }))
+      var outs = _.filter(tx.outs.map(function(output, index) {
         return coins[tx.getId()+index]
-      })
+      }))
 
       var colorValues = {}
-      _.filter(ins).forEach(function(coin) {
+      ins.forEach(function(coin) {
         promise = promise.then(function() { return Q.ninvoke(coin, 'getMainColorValue') }).then(function(cv) {
           var cid = cv.getColorId()
           if (_.isUndefined(colorValues[cid]))
@@ -77,13 +81,35 @@ HistoryManager.prototype.getEntries = function(cb) {
             colorValues[cid] = colorValues[cid].minus(cv)
         })
       })
-      _.filter(outs).forEach(function(coin) {
+      outs.forEach(function(coin) {
         promise = promise.then(function() { return Q.ninvoke(coin, 'getMainColorValue') }).then(function(cv) {
           var cid = cv.getColorId()
           if (_.isUndefined(colorValues[cid]))
             colorValues[cid] = cv
           else
             colorValues[cid] = colorValues[cid].plus(cv)
+        })
+      })
+
+      var colorTargets = []
+      tx.outs.forEach(function(output, index) {
+        promise = promise.then(function() {
+          if (!_.isUndefined(coins[tx.getId()+index]))
+            return
+
+          var script = bitcoin.Script.fromBuffer(output.script.toBuffer())
+          var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
+          var coin = new Coin(self.wallet.getCoinManager(), {
+            txId: tx.getId(),
+            outIndex: index,
+            value: output.value,
+            script: script,
+            address: address
+          })
+
+          return Q.ninvoke(coin, 'getMainColorValue').then(function(cv) {
+            colorTargets.push(new cclib.ColorTarget(address, cv))
+          })
         })
       })
 
@@ -99,18 +125,26 @@ HistoryManager.prototype.getEntries = function(cb) {
           assetValues[assetdef.getId()] = new AssetValue(assetdef, cv.getValue())
         })
 
+        var assetTargets = colorTargets.map(function(ct) {
+          var scheme = ct.getColorDefinition().getScheme()
+          var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
+          if (assetdef === null)
+            throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
+          return new AssetTarget(ct.getAddress(), assetdef)
+        })
+
         var entryType = HistoryEntry.entryTypes.Send
-        if (_.filter(ins).length === 0)
+        if (ins.length === 0)
           entryType = HistoryEntry.entryTypes.Receive
-        if (_.filter(ins).length === tx.ins.length && _.filter(outs).length === tx.outs.length)
+        if (ins.length === tx.ins.length && outs.length === tx.outs.length)
           entryType = HistoryEntry.entryTypes.PaymentToYourself
 
         entries.push(new HistoryEntry({
           tx: tx,
           blockHeight: txEntries[tx.getId()].blockHeight,
           timestamp: txEntries[tx.getId()].timestamp,
-          colorValues: _.values(colorValues),
-          assetValues: _.values(assetValues),
+          values: _.values(assetValues),
+          targets: assetTargets,
           entryType: entryType
         }))
       })

@@ -5,16 +5,16 @@
  * @param {coloredcoinjs-lib.Transaction} data.tx
  * @param {number} data.blockHeight
  * @param {number} data.timestamp
- * @param {ColorValue[]} data.colorValues
- * @param {AssetValue[]} data.assetValues
+ * @param {AssetValue[]} data.values
+ * @param {AssetTarget[]} data.targets
  * @param {number} data.entryType
  */
 function HistoryEntry(data) {
   this.txId = data.tx.getId()
   this.blockHeight = data.blockHeight
   this.timestamp = data.timestamp
-  this.colorValues = data.colorValues
-  this.assetValues = data.assetValues
+  this.values = data.values
+  this.targets = data.targets
   this.entryType = data.entryType
 }
 
@@ -47,17 +47,17 @@ HistoryEntry.prototype.getTimestamp = function() {
 }
 
 /**
- * @return {ColorValue[]}
+ * @return {AssetValue[]}
  */
-HistoryEntry.prototype.getColorValues = function() {
-  return this.colorValues
+HistoryEntry.prototype.getValues = function() {
+  return this.values
 }
 
 /**
- * @return {AssetValue[]}
+ * @return {ColorTarget[]}
  */
-HistoryEntry.prototype.getAssetValues = function() {
-  return this.assetValues
+HistoryEntry.prototype.getTargets = function() {
+  return this.targets
 }
 
 /**
