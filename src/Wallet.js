@@ -406,10 +406,28 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
  */
 
 /**
+ * @param {AssetDefinition} [assetdef]
  * @param {Wallet~getHistory} cb
  */
-Wallet.prototype.getHistory = function(cb) {
-  this.historyManager.getEntries(cb)
+Wallet.prototype.getHistory = function(assetdef, cb) {
+  if (_.isUndefined(cb)) {
+    cb = assetdef
+    assetdef = null
+  }
+
+  this.historyManager.getEntries(function(error, entries) {
+    if (error) {
+      cb(error)
+      return
+    }
+
+    if (assetdef !== null) {
+      var assetId = assetdef.getId()
+      entries = entries.filter(function(entry) { return entry.getAsset().getId() === assetId })
+    }
+
+    cb(null, entries)
+  })
 }
 
 /**

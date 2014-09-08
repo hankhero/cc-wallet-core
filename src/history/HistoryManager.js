@@ -18,7 +18,7 @@ function HistoryManager(wallet) {
 /**
  * @callback HistoryManager~getEntries
  * @param {?Error} error
- * @param {HistoryEntry[]} history
+ * @param {HistoryEntry[]} entries
  */
 
 /**
