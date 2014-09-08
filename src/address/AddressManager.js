@@ -12,14 +12,6 @@ var Address = require('./Address')
 var AssetDefinition = require('../asset').AssetDefinition
 
 
-function isHexString(s) {
-  var set = ['0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f']
-
-  return (_.isString(s) &&
-          s.length % 2 === 0 &&
-          s.toLowerCase().split('').every(function(x) { return set.indexOf(x) !== -1 }))
-}
-
 /**
  * @param {bitcoinjs-lib.HDNode} rootNode
  * @param {number} account
@@ -57,57 +49,64 @@ var EPOBC_CHAIN = 826130763
  * @class AddressManager
  *
  * @param {storage.AddressStorage} storage
+ * @param {Object} network Network description from bitcoinjs-lib.networks
  */
-function AddressManager(storage) {
+function AddressManager(storage, network) {
+  assert(networks.indexOf(network) !== -1, 'Unknow network type, got ' + network)
+
   this.storage = storage
+  this.network = network
+  this.masterKey = null
 
   this.privKeyCache = LRU()
 }
 
 /**
- * Set masterKey from seed and drop all created addresses
- *
  * @param {(Buffer|string)} seed Buffer or hex string
- * @param {Object} network Network description from bitcoinjs-lib.networks
  */
-AddressManager.prototype.setMasterKeyFromSeed = function(seed, network) {
-  assert(Buffer.isBuffer(seed) || isHexString(seed), 'Expected Buffer or hex string seed, got ' + seed)
-  assert(networks.indexOf(network) !== -1, 'Unknow network type, got ' + network)
+AddressManager.prototype.setMasterKeyFromSeed = function(seed) {
+  if (!Buffer.isBuffer(seed))
+    seed = new Buffer(seed, 'hex')
 
-  var node
-
-  if (Buffer.isBuffer(seed))
-    node = HDNode.fromSeedBuffer(seed, network)
-  else
-    node = HDNode.fromSeedHex(seed, network)
-
-  this.setMasterKey(node.toBase58())
+  var masterKey = HDNode.fromSeedBuffer(seed, this.network).toBase58()
+  this.setMasterKey(masterKey)
 }
 
 /**
- * Set masterKey and drop all created addresses
- *
  * @param {string} masterKey String in base58 format
+ * @throws {AssertionError} If AddressManager.network not equal masterKey network
  */
 AddressManager.prototype.setMasterKey = function(masterKey) {
-  HDNode.fromBase58(masterKey) // Check masterKey
+  if (this.masterKey === masterKey)
+    return
 
-  this.storage.setMasterKey(masterKey)
+  var rootNode = HDNode.fromBase58(masterKey)
+  assert.deepEqual(rootNode.network, this.network, 'masterKey network not equal manager network')
+
+  var oldZeroPubKey = this.storage.get(UNCOLORED_CHAIN).filter(function(record) { return record.index === 0 })[0]
+  var newZeroPubKey = derive(rootNode, 0, UNCOLORED_CHAIN, 0).pubKey.toHex()
+  if (oldZeroPubKey !== newZeroPubKey)
+    this.storage.clear()
+
+  this.masterKey = masterKey
   this.privKeyCache.reset()
 }
 
 /**
- * Get masterKey from storage in base58 format
- *
  * @return {?string} masterKey in base58 format
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If masterKey not installed
  */
 AddressManager.prototype.getMasterKey = function() {
-  var masterKey = this.storage.getMasterKey()
-  if (masterKey === null)
-    throw new Error('call setMasterKey first')
+  if (this.masterKey === null)
+    throw new Error('masterKey is not installed')
 
-  return masterKey
+  return this.masterKey
+}
+
+/**
+ */
+AddressManager.prototype.dropMasterKey = function() {
+  this.masterKey = null
 }
 
 /**
@@ -144,45 +143,41 @@ AddressManager.prototype.selectChain = function(definition) {
  *
  * @param {(function|ColorDefinition|AssetDefinition)} definition
  * @return {Address}
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If masterKey not installed
  */
 AddressManager.prototype.getNewAddress = function(definition) {
   var chain = this.selectChain(definition)
 
   var newIndex = 0
-  this.storage.getPubKeys(chain).forEach(function(record) {
+  this.storage.get(chain).forEach(function(record) {
     if (record.index >= newIndex)
       newIndex = record.index + 1
   })
 
-  var masterKey = this.getMasterKey()
-  var newNode = derive(HDNode.fromBase58(masterKey), 0, chain, newIndex)
+  var pubKey = derive(HDNode.fromBase58(this.getMasterKey()), 0, chain, newIndex).pubKey
 
-  this.storage.addPubKey({
+  this.storage.add({
     chain: chain,
     index: newIndex,
-    pubKey: newNode.pubKey.toHex()
+    pubKey: pubKey.toHex()
   })
 
-  var newAddress = new Address(newNode.pubKey, newNode.network)
-
-  return newAddress
+  return new Address(pubKey, this.network)
 }
 
 /**
- * Get first address if exists else create and return it
+ * Get first address if exists or create new and return it
  *
  * @param {(function|ColorDefinition|AssetDefinition)} definition
  * @return {Address[]}
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If masterKey not installed
  */
 AddressManager.prototype.getSomeAddress = function(definition) {
   var addresses = this.getAllAddresses(definition)
-
-  if (addresses.length === 0)
-    addresses = [this.getNewAddress(definition)]
-
-  return addresses[0]
+  if (addresses.length > 0)
+    return addresses[0]
+  
+  return this.getNewAddress(definition)
 }
 
 /**
@@ -190,46 +185,40 @@ AddressManager.prototype.getSomeAddress = function(definition) {
  *
  * @param {(function|ColorDefinition|AssetDefinition)} [definition]
  * @return {Address[]}
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If masterKey not installed
  */
 AddressManager.prototype.getAllAddresses = function(definition) {
-  var network = HDNode.fromBase58(this.getMasterKey()).network
-
-  function record2address(record) {
-    return new Address(ECPubKey.fromHex(record.pubKey), network)
-  }
-
   var chain
   if (!_.isUndefined(definition))
     chain = this.selectChain(definition)
 
-  var pubKeys = this.storage.getPubKeys(chain).map(record2address)
+  function record2address(record) {
+    return new Address(ECPubKey.fromHex(record.pubKey), this.network)
+  }
 
+  var pubKeys = this.storage.get(chain).map(record2address.bind(this))
   return pubKeys
 }
 
 /**
  * @param {string} address
  * @return {bitcoinjs-lib.ECKey}
- * @throws {Error} If address not found or masterKey not defined
+ * @throws {Error} If address not found or masterKey not installed
  */
 AddressManager.prototype.getPrivKeyByAddress = function(address) {
   var privKey = this.privKeyCache.get(address)
   if (!_.isUndefined(privKey))
     return privKey
 
-  var masterKey = this.getMasterKey()
-  var network = HDNode.fromBase58(masterKey).network
-
-  var record = this.storage.getPubKeys().filter(function(record) {
-    var recordAddress = new Address(ECPubKey.fromHex(record.pubKey), network)
+  var record = this.storage.getAll().filter(function(record) {
+    var recordAddress = new Address(ECPubKey.fromHex(record.pubKey), this.network)
     return recordAddress.getAddress() === address
-  })
+  }.bind(this))
 
   if (record.length === 0)
     throw new Error('address not found')
 
-  var node = derive(HDNode.fromBase58(masterKey), record[0].account, record[0].chain, record[0].index)
+  var node = derive(HDNode.fromBase58(this.getMasterKey()), record[0].account, record[0].chain, record[0].index)
   this.privKeyCache.set(address, node.privKey)
 
   return node.privKey
