@@ -25,6 +25,8 @@ describe('Wallet', function() {
   })
 
   it('sendCoins', function(done) {
+    this.timeout(120000)
+
     wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
 
     wallet.fullScanAllAddresses(function(error) {
@@ -38,6 +40,20 @@ describe('Wallet', function() {
       wallet.sendCoins(bitcoin, targets, function(error, txId) {
         expect(error).to.be.null
         expect(txId).to.be.an('string').with.to.have.length(64)
+        done()
+      })
+    })
+  })
+
+  it('history', function(done) {
+    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
+
+    wallet.fullScanAllAddresses(function(error) {
+      expect(error).to.be.null
+
+      wallet.getHistory(function(error, entries) {
+        expect(error).to.be.null
+        expect(entries).to.be.instanceof(Array)
         done()
       })
     })

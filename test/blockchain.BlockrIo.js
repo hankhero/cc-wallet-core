@@ -128,6 +128,16 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
     })
   })
 
+  describe('getBlockTime', function() {
+    it('return block time', function(done) {
+      bs.getBlockTime('0000000000000000041af0c6d8156cac373dc62fded618ab9d255a926887b88a', function(error, response) {
+        expect(error).to.be.null
+        expect(response).to.equal(1408730727)
+        done()
+      })
+    })
+  })
+
   describe('sendTx', function() {
     it('send coins', function(done) {
       sendCoins(function() { done() })
@@ -140,7 +150,7 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
         expect(error).to.be.null
         var values = response.map(function(utxo) { return utxo.value })
         var totalValue = values.reduce(function(acc, current) { return acc + current }, 0)
-        expect(totalValue).to.equal(800000032346)
+        expect(totalValue).to.equal(800000033346)
         done()
       })
     })

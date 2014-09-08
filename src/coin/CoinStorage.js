@@ -15,15 +15,13 @@ var SyncStorage = require('../SyncStorage')
  */
 
 /**
- * @typedef {Object} SpentCoinStorageRecord
- * @property {string} txId
- * @property {number} outIndex
- */
-
-/**
  * @class CoinStorage
  *
  * Inherits SyncStorage
+ *
+ * Coin spends stored in separate table, because one block
+ *  may contains not linking transactions and then toposort not be working
+ *  It's means that in db coins not be spends, but in fact it's will be spends
  */
 function CoinStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
@@ -32,9 +30,9 @@ function CoinStorage() {
   if (!_.isArray(this.store.get(this.coinsDbKey)))
     this.store.set(this.coinsDbKey, [])
 
-  this.spentDbKey = this.globalPrefix + 'spentCoins'
-  if (!_.isArray(this.store.get(this.spentCoins)))
-    this.store.set(this.spentCoins, {})
+  this.spendsDbKey = this.globalPrefix + 'spends'
+  if (!_.isObject(this.store.get(this.spendsDbKey)))
+    this.store.set(this.spendsDbKey, {})
 }
 
 inherits(CoinStorage, SyncStorage)
@@ -107,21 +105,25 @@ CoinStorage.prototype.getAll = function() {
  * @param {number} outIndex
  */
 CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
-  if (this.isSpent(txId, outIndex))
-    return
+  var spends = this.store.get(this.spendsDbKey) || {}
+  var txSpends = spends[txId] || []
 
-  var records = this.store.get(this.spentDbKey) || {}
-  records[txId + outIndex] = true
-  this.store.set(this.spentDbKey, records)
+  if (txSpends.indexOf(outIndex) === -1) {
+    txSpends.push(outIndex)
+    spends[txId] = txSpends
+    this.store.set(this.spendsDbKey, spends)
+  }
 }
 
 /**
  * @param {string} txId
  * @param {number} outIndex
+ * @return {boolean}
  */
 CoinStorage.prototype.isSpent = function(txId, outIndex) {
-  var records = this.store.get(this.spentDbKey) || {}
-  return !_.isUndefined(records[txId + outIndex])
+  var spends = this.store.get(this.spendsDbKey) || {}
+  var txSpends = spends[txId] || []
+  return txSpends.indexOf(outIndex) !== -1
 }
 
 /**
@@ -129,7 +131,7 @@ CoinStorage.prototype.isSpent = function(txId, outIndex) {
  */
 CoinStorage.prototype.clear = function() {
   this.store.remove(this.coinsDbKey)
-  this.store.remove(this.spentDbKey)
+  this.store.remove(this.spendsDbKey)
 }
 
 

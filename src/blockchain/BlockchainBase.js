@@ -51,19 +51,33 @@ BlockchainBase.prototype.getTxBlockHash = function() {
 }
 
 /**
- * @callback BlockchainBase~getBlockHeight
+ * @callback BlockrIo~getBlockHeight
  * @param {?Error} error
- * @param {Transaction} tx
+ * @param {number} height
  */
 
 /**
- * Get transaction by txId
  * @abstract
- * @param {string} txId
- * @param {BlockchainBase~getBlockHeight} cb
+ * @param {string} blockHash
+ * @param {BlockrIo~getBlockHeight} cb
  */
 BlockchainBase.prototype.getBlockHeight = function() {
   throw new Error('getBlockHeight not implemented')
+}
+
+/**
+ * @callback BlockchainBase~getBlockTime
+ * @param {?Error} error
+ * @param {number} timestamp
+ */
+
+/**
+ * @abstract
+ * @param {string} blockHash
+ * @param {BlockchainBase~getBlockTime} cb
+ */
+BlockchainBase.prototype.getBlockTime = function() {
+  throw new Error('getBlockTime not implemented')
 }
 
 /**

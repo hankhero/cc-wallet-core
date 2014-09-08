@@ -45,7 +45,7 @@ CoinManager.prototype.applyTx = function(tx, cb) {
       var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
 
       if (addresses.indexOf(address) === -1)
-        return Q()
+        return
 
       self.storage.add({
         txId: tx.getId(),

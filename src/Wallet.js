@@ -7,6 +7,7 @@ var address = require('./address')
 var asset = require('./asset')
 var blockchain = require('./blockchain')
 var coin = require('./coin')
+var history = require('./history')
 var tx = require('./tx')
 
 
@@ -51,8 +52,10 @@ function Wallet(opts) {
   this.coinStorage = new coin.CoinStorage()
   this.coinManager = new coin.CoinManager(this, this.coinStorage)
 
+  this.historyManager = new history.HistoryManager(this)
+
   this.txStorage = new tx.TxStorage()
-  this.txDb = new tx.NaiveTxDb(this.txStorage, this.coinManager, this.blockchain)
+  this.txDb = new tx.NaiveTxDb(this, this.txStorage)
   this.blockchain.txDb = this.txDb // not good, but else sendCoins with addUnconfirmedTx not working
   this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
 
@@ -67,9 +70,13 @@ Wallet.prototype.getColorDefinitionManager = function() { return this.cdManager 
 
 Wallet.prototype.getColorData = function() { return this.cData }
 
-Wallet.prototype.getAddressManager = function() { return this.adManager }
+Wallet.prototype.getAddressManager = function() { return this.aManager }
+
+Wallet.prototype.getAssetDefinitionManager = function() { return this.adManager }
 
 Wallet.prototype.getCoinManager = function() { return this.coinManager }
+
+Wallet.prototype.getHistoryManager = function() { return this.historyManager }
 
 Wallet.prototype.getTxDb = function() { return this.txDb }
 
@@ -336,7 +343,9 @@ Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
         unit: atoms
       })
 
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+      var timezoneOffset = new Date().getTimezoneOffset() * 60
+      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
     })
 
   }).done(function() { cb(null) }, function(error) { cb(error) })
@@ -378,7 +387,9 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
       return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
 
     }).then(function() {
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', signedTx)
+      var timezoneOffset = new Date().getTimezoneOffset() * 60
+      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
+      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
 
     }).then(function() {
       return signedTx.getId()
@@ -391,15 +402,32 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
 /**
  * @callback Wallet~getHistory
  * @param {?Error} error
- * @param {?[]} history
+ * @param {HistoryEntry[]} history
  */
 
 /**
- * @param {AssetDefinition} assetdef
+ * @param {AssetDefinition} [assetdef]
  * @param {Wallet~getHistory} cb
  */
 Wallet.prototype.getHistory = function(assetdef, cb) {
+  if (_.isUndefined(cb)) {
+    cb = assetdef
+    assetdef = null
+  }
 
+  this.historyManager.getEntries(function(error, entries) {
+    if (error) {
+      cb(error)
+      return
+    }
+
+    if (assetdef !== null) {
+      var assetId = assetdef.getId()
+      entries = entries.filter(function(entry) { return entry.getAsset().getId() === assetId })
+    }
+
+    cb(null, entries)
+  })
 }
 
 /**

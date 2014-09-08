@@ -1,0 +1,40 @@
+var _ = require('lodash')
+
+
+/**
+ * Sort transactions (sorted by height) in topological order
+ *
+ * @param {coloredcoinjs-lib.Transaction[]}
+ * @return {coloredcoinjs-lib.Transaction[]}
+ */
+function toposort(transactions) {
+  var transactionsIds = _.zipObject(transactions.map(function(tx) { return [tx.getId(), tx] }))
+  var result = []
+  var resultIds = []
+
+  function sort(tx, topTx) {
+    if (resultIds.indexOf(tx.getId()) !== -1)
+      return
+
+    tx.ins.forEach(function(input) {
+      var inputId = Array.prototype.reverse.call(new Buffer(input.hash)).toString('hex')
+      if (_.isUndefined(transactionsIds[inputId]))
+        return
+
+      if (transactionsIds[inputId].getId() === topTx.getId())
+        throw new Error('graph is cyclical')
+
+      sort(transactionsIds[inputId], tx)
+    })
+
+    result.push(tx)
+    resultIds.push(tx.getId())
+  }
+
+  transactions.forEach(function(tx) { sort(tx, tx) })
+
+  return result
+}
+
+
+module.exports = toposort

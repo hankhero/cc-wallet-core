@@ -202,6 +202,23 @@ BlockrIo.prototype.getBlockHeight = function(blockHash, cb) {
 }
 
 /**
+ * @callback BlockchainBase~getBlockTime
+ * @param {?Error} error
+ * @param {number} timestamp
+ */
+
+/**
+ * @param {string} blockHash
+ * @param {BlockchainBase~getBlockTime} cb
+ */
+BlockchainBase.prototype.getBlockTime = function(blockHash, cb) {
+  Q.ninvoke(this, 'request', '/api/v1/block/info/' + blockHash).then(function(response) {
+    return Math.round(Date.parse(response.time_utc)/1000)
+
+  }).done(function(height) { cb(null, height) }, function(error) { cb(error) })
+}
+
+/**
  * @callback BlockrIo~sendTx
  * @param {?Error} error
  * @param {string} txId
