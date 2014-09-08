@@ -20,7 +20,7 @@ var tx = require('./tx')
  * @class Wallet
  *
  * @param {Object} opts
- * @param {(Buffer|string)} opts.masterKey Seed for hierarchical deterministic wallet
+ * @param {(Buffer|string)} [opts.masterKey] Seed for hierarchical deterministic wallet
  * @param {boolean} [opts.testnet=false]
  * @param {string} [opts.blockchain='BlockrIo'] Now available only BlockrIo
  */
@@ -42,8 +42,9 @@ function Wallet(opts) {
   this.cData = new cclib.ColorData(this.cDataStorage, this.blockchain)
 
   this.aStorage = new address.AddressStorage()
-  this.aManager = new address.AddressManager(this.aStorage)
-  this.aManager.setMasterKeyFromSeed(opts.masterKey, this.network)
+  this.aManager = new address.AddressManager(this.aStorage, this.network)
+  if (!_.isUndefined(opts.masterKey))
+    this.aManager.setMasterKeyFromSeed(opts.masterKey)
 
   this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)

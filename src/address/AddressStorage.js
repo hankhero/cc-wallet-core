@@ -23,55 +23,23 @@ var SyncStorage = require('../SyncStorage')
 function AddressStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
 
-  this.masterKeyDBKey = this.globalPrefix + 'masterKey'
-  this.pubKeysDBKey = this.globalPrefix + 'pubKeys'
+  this.dbKey = this.globalPrefix + 'pubKeys'
 
-  if (!_.isString(this.store.get(this.masterKeyDBKey))) {
-    this.store.remove(this.masterKeyDBKey)
-    this.store.set(this.pubKeysDBKey, [])
-  }
-
-  if (!_.isArray(this.store.get(this.pubKeysDBKey)))
-    this.store.set(this.pubKeysDBKey, [])
+  if (!_.isArray(this.store.get(this.dbKey)))
+    this.store.set(this.dbKey, [])
 }
 
 inherits(AddressStorage, SyncStorage)
-
-/**
- * Save masterKey in base58 format
- *
- * @param {string} masterKey
- */
-AddressStorage.prototype.setMasterKey = function(newMasterKey) {
-  HDNode.fromBase58(newMasterKey) // Check masterKey
-
-  var currentMasterKey = this.getMasterKey()
-  this.store.set(this.masterKeyDBKey, newMasterKey)
-
-  if (currentMasterKey !== newMasterKey)
-    this.store.set(this.pubKeysDBKey, [])
-}
-
-/**
- * Get masterKey from store in base58
- *
- * @return {?srting}
- */
-AddressStorage.prototype.getMasterKey = function() {
-  var masterKey = this.store.get(this.masterKeyDBKey)
-  return _.isUndefined(masterKey) ? null : masterKey
-}
 
 /*
  * @param {Object} data
  * @param {number} data.chain
  * @param {number} data.index
  * @param {string} data.pubKey bitcoinjs-lib.ECPubKey in hex format
- * @return {AddressStorageRecord}
  * @throw {Error} If account, chain, index or pubKey exists
  */
-AddressStorage.prototype.addPubKey = function(data) {
-  var pubKeys = this.store.get(this.pubKeysDBKey) || []
+AddressStorage.prototype.add = function(data) {
+  var pubKeys = this.getAll()
 
   pubKeys.forEach(function(record) {
     if (record.chain === data.chain && record.index === data.index)
@@ -81,38 +49,38 @@ AddressStorage.prototype.addPubKey = function(data) {
       throw new Error('pubKey already exists')
   })
 
-  var record = {
+  pubKeys.push({
     account: 0,
     chain: data.chain,
     index: data.index,
     pubKey: data.pubKey
-  }
-  pubKeys.push(record)
+  })
 
-  this.store.set(this.pubKeysDBKey, pubKeys)
-
-  return record
+  this.store.set(this.dbKey, pubKeys)
 }
 
 /**
- * @param {number} [chain]
+ * @param {number} chain
  * @return {AddressStorageRecord[]}
  */
-AddressStorage.prototype.getPubKeys = function(chain) {
-  var pubKeys = this.store.get(this.pubKeysDBKey) || []
-
-  if (!_.isUndefined(chain))
-    pubKeys = pubKeys.filter(function(record) { return record.chain === chain })
-
+AddressStorage.prototype.get = function(chain) {
+  var pubKeys = this.getAll().filter(function(record) { return record.chain === chain })
   return pubKeys
 }
 
 /**
- * Remove masterKey and all pubKeys
+ * @return {AddressStorageRecord[]}
+ */
+AddressStorage.prototype.getAll = function() {
+  var pubKeys = this.store.get(this.dbKey) || []
+  return pubKeys
+}
+
+/**
+ * Remove all records
  */
 AddressStorage.prototype.clear = function() {
-  this.store.remove(this.masterKeyDBKey)
-  this.store.remove(this.pubKeysDBKey)
+  this.store.remove(this.dbKey)
 }
 
 

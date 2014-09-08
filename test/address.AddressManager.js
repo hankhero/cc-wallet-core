@@ -20,7 +20,7 @@ describe('address.AddressManager', function() {
     cdManager = new cclib.ColorDefinitionManager(cdStorage)
     uncolored = cdManager.getUncolored()
     amStorage = new address.AddressStorage()
-    am = new address.AddressManager(amStorage)
+    am = new address.AddressManager(amStorage, networks.bitcoin)
   })
 
   afterEach(function() {
@@ -79,8 +79,8 @@ describe('address.AddressManager', function() {
     it('addPubKey throw error', function() {
       am.getNewAddress(uncolored)
       var pubKeyHex = am.getNewAddress(uncolored).pubKey.toHex()
-      am.storage.store.set(am.storage.pubKeysDBKey, []) // not good
-      am.storage.addPubKey({ chain: 0, index: 0, pubKey: pubKeyHex })
+      am.storage.store.set(am.storage.dbKey, []) // not good
+      am.storage.add({ chain: 0, index: 0, pubKey: pubKeyHex })
       var fn = function() { am.getNewAddress(uncolored) }
       expect(fn).to.throw(Error)
     })
@@ -94,12 +94,6 @@ describe('address.AddressManager', function() {
   describe('getAllAddresses', function() {
     beforeEach(function() {
       am.setMasterKey(masterKeyBase58)
-    })
-
-    it('masterKey not defined', function() {
-      am.getMasterKey = function() { return null }
-      var fn = function() { am.getAllAddresses(uncolored) }
-      expect(fn).to.throw(Error)
     })
 
     it('getAllAddresses once', function() {
