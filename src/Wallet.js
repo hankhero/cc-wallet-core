@@ -84,6 +84,13 @@ Wallet.prototype.getTxDb = function() { return this.txDb }
 Wallet.prototype.getTxFetcher = function() { return this.txFetcher }
 
 /**
+ * @param {string} seed
+ */
+Wallet.prototype.setMasterKeyFromSeed = function(seed) {
+  this.getAddressManager().setMasterKeyFromSeed(seed)
+}
+
+/**
  * @param {Object} data
  * @param {string[]} data.monikers
  * @param {string[]} data.colorSchemes
