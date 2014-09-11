@@ -10,23 +10,13 @@ var Transaction = cclib.Transaction
 
 
 /**
- * @class TxTranformer
- *
- * An object that can transform one type of transaction into another
- *
- * AssetTx  -> OperationalTx -> ComposedTx -> Transaction
- * "simple" -> "operational" -> "composed" -> "signed"
- */
-function TxTranformer() {}
-
-/**
  * For a given transaction tx, returns a string that represents
  *  the type of transaction (asset, operational, composed, signed) that it is
  *
  * @param {(AssetTx|OperationalTx|ComposedTx|Transaction)} tx
  * @return {?string}
  */
-TxTranformer.prototype.classifyTx = function(tx) {
+function classifyTx(tx) {
   if (tx instanceof AssetTx)
     return 'asset'
 
@@ -46,7 +36,7 @@ TxTranformer.prototype.classifyTx = function(tx) {
 }
 
 /**
- * @callback TxTranformer~transformAssetTx
+ * @callback transformAssetTx~callback
  * @param {?Error} error
  * @param {OperationalTx} operationalTx
  */
@@ -57,11 +47,10 @@ TxTranformer.prototype.classifyTx = function(tx) {
  *
  * @param {AssetTx} assetTx
  * @param {string} targetKind
- * @param {TxTranformer~transformAssetTx} cb
+ * @param {(Buffer|string)} seed
+ * @param {transformAssetTx~callback} cb
  */
-TxTranformer.prototype.transformAssetTx = function(assetTx, targetKind, cb) {
-  var self = this
-
+function transformAssetTx(assetTx, targetKind, seed, cb) {
   Q.fcall(function() {
     if (['operational', 'composed', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform assetTx')
@@ -70,13 +59,13 @@ TxTranformer.prototype.transformAssetTx = function(assetTx, targetKind, cb) {
       throw new Error('multi color AssetTx not supported')
 
     var operationalTx = assetTx.makeOperationalTx()
-    return Q.ninvoke(self, 'transformTx', operationalTx, targetKind)
+    return Q.nfcall(transformTx, operationalTx, targetKind, seed)
 
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 /**
- * @callback TxTranformer~transformOperationalTx
+ * @callback transformOperationalTx~callback
  * @param {?Error} error
  * @param {ComposedTx} composedTx
  */
@@ -87,11 +76,10 @@ TxTranformer.prototype.transformAssetTx = function(assetTx, targetKind, cb) {
  *
  * @param {OperationalTx} operationalTx
  * @param {string} targetKind
- * @param {TxTranformer~transformOperationalTx} cb
+ * @param {(Buffer|string)} seed
+ * @param {transformOperationalTx~callback} cb
  */
-TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKind, cb) {
-  var self = this
-
+function transformOperationalTx(operationalTx, targetKind, seed, cb) {
   Q.fcall(function() {
     if (['composed', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform operationalTx')
@@ -106,13 +94,13 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
     return Q.nfcall(composer, operationalTx)
 
   }).then(function(composedTx) {
-    return Q.ninvoke(self, 'transformTx', composedTx, targetKind)
+    return Q.nfcall(transformTx, composedTx, targetKind, seed)
 
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
 
 /**
- * @callback TxTranformer~transformComposedTx
+ * @callback transformComposedTx~callback
  * @param {?Error} error
  * @param {Transaction} tx
  */
@@ -123,9 +111,10 @@ TxTranformer.prototype.transformOperationalTx = function(operationalTx, targetKi
  *
  * @param {ComposedTx} composedTx
  * @param {string} targetKind
- * @param {TxTranformer~transformComposedTx} cb
+ * @param {(Buffer|string)} seed
+ * @param {transformComposedTx~callback} cb
  */
-TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb) {
+function transformComposedTx(composedTx, targetKind, seed, cb) {
   Q.fcall(function() {
     if (['signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform composedTx')
@@ -139,7 +128,7 @@ TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb
     })
 
     composedTx.getTxIns().forEach(function(txIn, index) {
-      var privKey = composedTx.operationalTx.wallet.aManager.getPrivKeyByAddress(txIn.address)
+      var privKey = composedTx.operationalTx.wallet.getAddressManager().getPrivKeyByAddress(seed, txIn.address)
       tx.sign(index, privKey)
     })
 
@@ -151,25 +140,10 @@ TxTranformer.prototype.transformComposedTx = function(composedTx, targetKind, cb
 
     return ccTx
 
+  }).then(function(signedTx) {
+    return Q.nfcall(transformTx, signedTx, targetKind, seed)
+
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
-}
-
-/**
- * @callback TxTranformer~transformSignedTx
- * @param {Error} error
- */
-
-/**
- * This method is not yet implemented.
- *
- * @param {*} tx
- * @param {*} targetKind
- * @param {TxTranformer~transformSignedTx} cb
- */
-TxTranformer.prototype.transformSignedTx = function(tx, targetKind, cb) {
-  process.nextTick(function() {
-    cb(new Error('do not know how to transform signed tx'))
-  })
 }
 
 /**
@@ -181,29 +155,33 @@ TxTranformer.prototype.transformSignedTx = function(tx, targetKind, cb) {
 /**
  * Transform a transaction tx into another type of transaction defined by targetKind.
  *
+ * AssetTx  -> OperationalTx -> ComposedTx -> Transaction
+ * "simple" -> "operational" -> "composed" -> "signed"
+ *
  * @param {(AssetTx|OperationalTx|ComposedTx)} tx
  * @param {string} targetKind
+ * @param {(Buffer|string)} [seed] Required targetKind is signed
  * @param {TxTranformer~transformTx} cb
  */
-TxTranformer.prototype.transformTx = function(tx, targetKind, cb) {
-  var self = this
+function transformTx(tx, targetKind, seed, cb) {
+  if (_.isUndefined(cb)) {
+    cb = seed
+    seed = undefined
+  }
 
   Q.fcall(function() {
-    var currentKind = self.classifyTx(tx)
+    var currentKind = classifyTx(tx)
     if (currentKind === targetKind)
       return tx
 
     if (currentKind === 'asset')
-      return Q.ninvoke(self, 'transformAssetTx', tx, targetKind)
+      return Q.nfcall(transformAssetTx, tx, targetKind, seed)
 
     if (currentKind === 'operational')
-      return Q.ninvoke(self, 'transformOperationalTx', tx, targetKind)
+      return Q.nfcall(transformOperationalTx, tx, targetKind, seed)
 
     if (currentKind === 'composed')
-      return Q.ninvoke(self, 'transformComposedTx', tx, targetKind)
-
-    if (currentKind === 'signed')
-      return Q.ninvoke(self, 'transformSignedTx', tx, targetKind)
+      return Q.nfcall(transformComposedTx, tx, targetKind, seed)
 
     throw new Error('targetKind is not recognized')
 
@@ -211,4 +189,4 @@ TxTranformer.prototype.transformTx = function(tx, targetKind, cb) {
 }
 
 
-module.exports = TxTranformer
+module.exports = transformTx

@@ -2,7 +2,7 @@ module.exports = {
   AssetTx: require('./AssetTx'),
   OperationalTx: require('./OperationalTx'),
 
-  TxTransformer: require('./TxTransformer'),
+  transformTx: require('./TxTransformer'),
 
   TxStorage: require('./TxStorage'),
   NaiveTxDb: require('./NaiveTxDb'),

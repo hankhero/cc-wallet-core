@@ -10,126 +10,83 @@ var Wallet = require('../src/index')
 
 describe('Wallet', function() {
   var wallet
-  var masterKey = '123131123131123131123131123131123131123131123131123131'
+  var seed = '123131123131123131123131123131123131123131123131123131'
+  var goldAsset = {
+    monikers: ['gold'],
+    colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+    unit: 10
+  }
 
   beforeEach(function() {
-    wallet = new Wallet({ masterKey: masterKey, testnet: true })
+    wallet = new Wallet({ testnet: true })
   })
 
   afterEach(function() {
     wallet.clearStorage()
   })
 
-  it('getCoinQuery return CoinQuery instance', function() {
-    expect(wallet.getCoinQuery()).to.be.instanceof(coin.CoinQuery)
-  })
-
-  it('sendCoins', function(done) {
-    this.timeout(120000)
-
-    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bb', testnet: true })
-
-    wallet.fullScanAllAddresses(function(error) {
-      expect(error).to.be.null
-
-      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
-      var address = wallet.getSomeAddress(bitcoin)
-      //console.log('Address from: ' + address)
-      //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
-      var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
-      wallet.sendCoins(bitcoin, targets, function(error, txId) {
-        expect(error).to.be.null
-        expect(txId).to.be.an('string').with.to.have.length(64)
-        done()
-      })
+  describe('initialized+ methods', function() {
+    it('isInitialized return false', function() {
+      expect(wallet.isInitialized()).to.be.false
     })
-  })
 
-  it('history', function(done) {
-    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
-
-    wallet.fullScanAllAddresses(function(error) {
-      expect(error).to.be.null
-
-      wallet.getHistory(function(error, entries) {
-        expect(error).to.be.null
-        expect(entries).to.be.instanceof(Array)
-        done()
-      })
+    it('isInitialized return true', function() {
+      wallet.initialize(seed)
+      expect(wallet.isInitialized()).to.be.true
     })
-  })
 
-  it('issueCoins epobc', function(done) {
-    wallet = new Wallet({ masterKey: '421fc385fdaed1121221222eddad0dae', testnet: true })
-
-    wallet.fullScanAllAddresses(function(error) {
-      expect(error).to.be.null
-
-      var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
-      var address = wallet.getSomeAddress(bitcoin)
-
-      wallet.issueCoins('gold', 'epobc', 5, 10000, function(error) {
-        if (error) throw error
-        expect(error).to.be.null
-        done()
-      })
+    it('isInitializedCheck throw Error', function() {
+      expect(wallet.isInitializedCheck).to.throw(Error)
     })
-  })
 
-  // Need new issued asset, this broken
-  it.skip('sendCoins epobc', function(done) {
-    wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bd', testnet: true })
-    var data = {
-      monikers: ['gold'],
-      colorSchemes: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
-      unit: 10000
-    }
-    var assetdef = wallet.addAssetDefinition(data)
+    it('isInitializedCheck not throw Error', function() {
+      wallet.initialize(seed)
+      expect(wallet.isInitializedCheck.bind(wallet)).to.not.throw(Error)
+    })
 
-    wallet.fullScanAllAddresses(function(error) {
-      expect(error).to.be.null
+    it('isCurrentSeed return true', function() {
+      wallet.initialize(seed)
+      expect(wallet.isCurrentSeed(seed)).to.be.true
+    })
 
-      var address = wallet.getSomeAddress(assetdef)
-      //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
-      var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
-      //wallet.getAvailableBalance(assetdef, function(error, balance) {
-        //console.log(error, balance, assetdef.formatValue(balance))
-      wallet.sendCoins(assetdef, targets, function(error, txId) {
-        expect(error).to.be.null
-        expect(txId).to.be.an('string').with.to.have.length(64)
-        done()
-      })
+    it('isCurrentSeed return false', function() {
+      wallet.initialize(seed)
+      expect(wallet.isCurrentSeed(seed.split('').reverse().join(''))).to.be.false
     })
   })
 
   describe('asset methods', function() {
-    it('addAssetDefinition throw error', function() {
-      var data = {
-        monikers: ['bitcoin'],
-        colorSchemes: ['']
-      }
-      var fn = function() { wallet.addAssetDefinition(data) }
+    it('addAssetDefinition need initialization', function() {
+      var fn = function() { wallet.addAssetDefinition(seed, goldAsset) }
       expect(fn).to.throw(Error)
     })
 
-    it('addAssetDefinition return AssetDefinition', function() {
-      var data = {
-        monikers: ['gold'],
-        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
-        unit: 10
-      }
-      var result = wallet.addAssetDefinition(data)
-      expect(result).to.be.instanceof(AssetDefinition)
-      expect(result.getData()).to.deep.equal(data)
+    it('addAssetDefinition', function() {
+      wallet.initialize(seed)
+      var assetdef = wallet.addAssetDefinition(seed, goldAsset)
+      expect(assetdef).to.be.instanceof(AssetDefinition)
+      expect(assetdef.getData()).to.deep.equal(goldAsset)
+    })
+
+    it('getAssetDefinitionByMoniker need initialization', function() {
+      var fn = function() { wallet.getAssetDefinitionByMoniker('bitcoin') }
+      expect(fn).to.throw(Error)
     })
 
     it('getAssetDefinitionByMoniker', function() {
+      wallet.initialize(seed)
       var result = wallet.getAssetDefinitionByMoniker('bitcoin')
       expect(result).to.be.instanceof(AssetDefinition)
       expect(result.getData()).to.deep.equal({ monikers: ['bitcoin'], colorSchemes: [''], unit: 100000000 })
     })
 
+    it('getAllAssetDefinitions need initialization', function() {
+      var fn = function() { wallet.getAllAssetDefinitions('bitcoin') }
+      expect(fn).to.throw(Error)
+    })
+
     it('getAllAssetDefinitions', function() {
+      wallet.initialize(seed)
       var result = wallet.getAllAssetDefinitions()
       expect(result).to.have.length(1)
       expect(result[0]).to.be.instanceof(AssetDefinition)
@@ -138,109 +95,154 @@ describe('Wallet', function() {
   })
 
   describe('address methods', function() {
-    var bitcoin, epobc
+    var bitcoin
 
-    beforeEach(function() {
-      var result = wallet.addAssetDefinition({
-        monikers: ['gold'],
-        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
-        unit: 10
-      })
-      expect(result).to.be.instanceof(AssetDefinition)
-      bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
-      epobc = wallet.getAssetDefinitionByMoniker('gold')
+    it('getNewAddress need initialization', function() {
+      expect(wallet.getNewAddress).to.throw(Error)
     })
 
     it('getNewAddress', function() {
-      var newAddress = wallet.getNewAddress(bitcoin)
-      expect(newAddress).to.equal('mmFYK2Mofiwtm68ZTYK7etjiGyf3SeLkgo')
+      wallet.initialize(seed)
+      bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      expect(wallet.getNewAddress(seed, bitcoin)).to.equal('mmFYK2Mofiwtm68ZTYK7etjiGyf3SeLkgo')
     })
 
-    it('getSomeAddress', function() {
-      var someAddress = wallet.getSomeAddress(bitcoin)
-      expect(someAddress).to.equal('mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd')
+    it('getAllAddresses need initialization', function() {
+      var fn = function() { wallet.getAllAddresses(bitcoin) }
+      expect(fn).to.throw(Error)
     })
 
     it('getAllAddresses', function() {
-      var addresses = wallet.getAllAddresses(bitcoin)
-      expect(addresses).to.deep.equal(['mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd'])
+      wallet.initialize(seed)
+      expect(wallet.getAllAddresses(bitcoin)).to.deep.equal(['mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd'])
+    })
+
+    it('getSomeAddress need initialization', function() {
+      var fn = function() { wallet.getSomeAddress() }
+      expect(fn).to.throw(Error)
+    })
+
+    it('getSomeAddress', function() {
+      wallet.initialize(seed)
+      bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+      expect(wallet.getSomeAddress(bitcoin)).to.equal('mmHBqwp1fDwWXaXqo5ZrEE4qAoXH5xkUvd')
     })
 
     it('checkAddress bitcoin', function() {
+      wallet.initialize(seed)
+      bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
       var isValid = wallet.checkAddress(bitcoin, 'mgFmR51KZRKb2jcmJb276KQK9enC9cmG9v')
       expect(isValid).to.be.true
     })
 
     it('checkAddress color', function() {
+      wallet.initialize(seed)
+      var epobc = wallet.addAssetDefinition(seed, goldAsset)
       var isValid = wallet.checkAddress(epobc, 'ES5wsZmWHs5xzP@mgFmR51KZRKb2jcmJb276KQK9enC9cmG9v')
       expect(isValid).to.be.true
     })
   })
 
   describe('balance methods', function() {
-    var bitcoin, epobc
-
     beforeEach(function(done) {
-      var result = wallet.addAssetDefinition({
-        monikers: ['gold'],
-        colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
-        unit: 10
-      })
-      expect(result).to.be.instanceof(AssetDefinition)
-      bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
-      epobc = wallet.getAssetDefinitionByMoniker('gold')
-
+      wallet.initialize(seed)
+      wallet.addAssetDefinition(seed, goldAsset)
       wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
         done()
       })
     })
 
-    it('getAvailableBalance for bitcoin', function(done) {
-      wallet.getAvailableBalance(bitcoin, function(error, balance) {
+    var fixtures = [
+      { method: 'getAvailableBalance',   moniker: 'bitcoin', balance: 63326039 },
+      { method: 'getAvailableBalance',   moniker: 'gold',    balance: 2000 },
+      { method: 'getTotalBalance',       moniker: 'bitcoin', balance: 63326039 },
+      { method: 'getTotalBalance',       moniker: 'gold',    balance: 2000 },
+      { method: 'getUnconfirmedBalance', moniker: 'bitcoin', balance: 0 },
+      { method: 'getUnconfirmedBalance', moniker: 'gold',    balance: 0 },
+    ]
+
+    fixtures.forEach(function(fixture) {
+      it(fixture.method + ' for ' + fixture.moniker, function(done) {
+        var assetdef = wallet.getAssetDefinitionByMoniker(fixture.moniker)
+        wallet[fixture.method](assetdef, function(error, balance) {
+          expect(error).to.be.null
+          expect(balance).to.equal(fixture.balance)
+          done()
+        })
+      })
+    })
+  })
+
+  describe('send, history, issue', function() {
+    it('sendCoins', function(done) {
+      this.timeout(120000)
+
+      var seed = '421fc385fdae762b346b80e0212f77bb'
+      wallet.initialize(seed)
+      wallet.addAssetDefinition(seed, goldAsset)
+      wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
-        expect(balance).to.equal(63468989)
-        done()
+
+        var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
+        var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+
+        wallet.sendCoins(seed, bitcoin, targets, function(error, txId) {
+          expect(error).to.be.null
+          expect(txId).to.be.an('string').with.to.have.length(64)
+          done()
+        })
       })
     })
 
-    it('getAvailableBalance for epobc', function(done) {
-      wallet.getAvailableBalance(epobc, function(error, balance) {
+    // Need new issued asset, this broken
+    it.skip('sendCoins epobc', function(done) {
+      wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bd', testnet: true })
+      var data = {
+        monikers: ['gold'],
+        colorSchemes: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
+        unit: 10000
+      }
+      var assetdef = wallet.addAssetDefinition(data)
+
+      wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
-        expect(balance).to.equal(2000)
-        done()
+
+        var address = wallet.getSomeAddress(assetdef)
+        //console.log('Address to:   ' + 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE')
+        var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
+        //wallet.getAvailableBalance(assetdef, function(error, balance) {
+          //console.log(error, balance, assetdef.formatValue(balance))
+        wallet.sendCoins(assetdef, targets, function(error, txId) {
+          expect(error).to.be.null
+          expect(txId).to.be.an('string').with.to.have.length(64)
+          done()
+        })
       })
     })
 
-    it('getTotalBalance for bitcoin', function(done) {
-      wallet.getTotalBalance(bitcoin, function(error, balance) {
+    it('history', function(done) {
+      wallet.initialize(seed)
+      wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
-        expect(balance).to.equal(63468989)
-        done()
+        wallet.getHistory(function(error, entries) {
+          expect(error).to.be.null
+          expect(entries).to.be.instanceof(Array)
+          done()
+        })
       })
     })
 
-    it('getTotalBalance for epobc', function(done) {
-      wallet.getTotalBalance(epobc, function(error, balance) {
+    it('issueCoins epobc', function(done) {
+      var seed = '421fc385fdaed1121221222eddad0dae'
+      wallet.initialize(seed)
+      wallet.addAssetDefinition(seed, goldAsset)
+      wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
-        expect(balance).to.equal(2000)
-        done()
-      })
-    })
-
-    it('getUnconfirmedBalance for bitcoin', function(done) {
-      wallet.getUnconfirmedBalance(bitcoin, function(error, balance) {
-        expect(error).to.be.null
-        expect(balance).to.equal(0)
-        done()
-      })
-    })
-
-    it('getUnconfirmedBalance for epobc', function(done) {
-      wallet.getUnconfirmedBalance(epobc, function(error, balance) {
-        expect(error).to.be.null
-        expect(balance).to.equal(0)
-        done()
+        wallet.issueCoins(seed, 'newEPOBC', 'epobc', 5, 10000, function(error) {
+          expect(error).to.be.null
+          done()
+        })
       })
     })
   })

@@ -23,22 +23,22 @@ describe('address.AddressStorage', function() {
     expect(storage).to.be.instanceof(AddressStorage)
   })
 
-  it('addPubKey throw UniqueConstraint for account, chain and index', function() {
+  it('add throw UniqueConstraint for account, chain and index', function() {
     storage.add({ chain: 0, index: 0, pubKey: pubKeyHex1 })
     var fn = function() { storage.add({ chain: 0, index: 0, pubKey: pubKeyHex2 }) }
     expect(fn).to.throw(Error)
   })
 
-  it('addPubKey throw UniqueConstraint for pubKey', function() {
+  it('add throw UniqueConstraint for pubKey', function() {
     storage.add({ chain: 0, index: 0, pubKey: pubKeyHex1 })
     var fn = function() { storage.add({ chain: 0, index: 1, pubKey: pubKeyHex1 }) }
     expect(fn).to.throw(Error)
   })
 
-  it('getPubKeys', function() {
+  it('getAll', function() {
     storage.add({ chain: 0, index: 0, pubKey: pubKeyHex1 })
     storage.add({ chain: 1, index: 0, pubKey: pubKeyHex2 })
-    var pubKeys = storage.get(0)
+    var pubKeys = storage.getAll(0)
     expect(pubKeys).to.deep.equal([{ account: 0, chain: 0, index: 0, pubKey: pubKeyHex1 }])
   })
 })

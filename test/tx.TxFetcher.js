@@ -3,16 +3,15 @@ var expect = require('chai').expect
 var Wallet = require('../src/index')
 
 
-describe('tx.TxFetcher', function() {var wallet
-  var txFetcher
-  var addresses
+describe('tx.TxFetcher', function() {
+  var wallet, txFetcher, addresses
 
   beforeEach(function() {
-    wallet = new Wallet({ masterKey: '123131123131123131123131123131123131123131123131123131', testnet: true })
-    var bitcoinAsset = wallet.getAssetDefinitionByMoniker('bitcoin')
+    wallet = new Wallet({ testnet: true })
+    wallet.initialize('123131123131123131123131123131123131123131123131123131')
 
     txFetcher = wallet.getTxFetcher()
-    addresses = wallet.getAllAddresses(bitcoinAsset)
+    addresses = wallet.getAllAddresses(wallet.getAssetDefinitionByMoniker('bitcoin'))
   })
 
   afterEach(function() {

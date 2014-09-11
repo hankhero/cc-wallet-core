@@ -13,10 +13,10 @@ var SyncStorage = require('./SyncStorage')
 function ConfigStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
 
-  this.configDBKey = this.globalPrefix + 'config'
+  this.dbKey = this.globalPrefix + 'config'
 
-  if (!_.isObject(this.store.get(this.configDBKey)))
-    this.store.set(this.configDBKey, {})
+  if (!_.isObject(this.store.get(this.dbKey)))
+    this.store.set(this.dbKey, {})
 }
 
 inherits(ConfigStorage, SyncStorage)
@@ -25,36 +25,29 @@ inherits(ConfigStorage, SyncStorage)
  * Set key
  *
  * @param {string} key
- * @param {} value
+ * @param {*} value
  */
 ConfigStorage.prototype.set = function(key, value) {
-  assert(_.isString(key), 'Expected String key, got ' + key)
-
-  var config = this.store.get(this.configDBKey) || {}
-
+  var config = this.store.get(this.dbKey) || {}
   config[key] = value
-
-  this.store.set(this.configDBKey, config)
+  this.store.set(this.dbKey, config)
 }
 
 /**
- * Get key from store or defaultValue if value undefined
- *
  * @param {string} key
- * @param {} [defaultValue=undefined]
- * @return {}
+ * @param {*} [defaultValue=undefined]
+ * @return {*}
  */
 ConfigStorage.prototype.get = function(key, defaultValue) {
-  var config = this.store.get(this.configDBKey) || {}
+  var config = this.store.get(this.dbKey) || {}
   var value = _.isUndefined(config[key]) ? defaultValue : config[key]
   return value
 }
 
 /**
- * Drop current config
  */
 ConfigStorage.prototype.clear = function() {
-  this.store.remove(this.configDBKey)
+  this.store.remove(this.dbKey)
 }
 
 
