@@ -1,8 +1,6 @@
 var inherits = require('util').inherits
 
 var _ = require('lodash')
-var bitcoin = require('bitcoinjs-lib')
-var HDNode = bitcoin.HDNode
 
 var SyncStorage = require('../SyncStorage')
 
@@ -60,19 +58,14 @@ AddressStorage.prototype.add = function(data) {
 }
 
 /**
- * @param {number} chain
+ * @param {number} [chain]
  * @return {AddressStorageRecord[]}
  */
-AddressStorage.prototype.get = function(chain) {
-  var pubKeys = this.getAll().filter(function(record) { return record.chain === chain })
-  return pubKeys
-}
-
-/**
- * @return {AddressStorageRecord[]}
- */
-AddressStorage.prototype.getAll = function() {
+AddressStorage.prototype.getAll = function(chain) {
   var pubKeys = this.store.get(this.dbKey) || []
+  if (!_.isUndefined(chain))
+    pubKeys = pubKeys.filter(function(record) { return record.chain === chain })
+
   return pubKeys
 }
 

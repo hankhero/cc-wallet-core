@@ -7,6 +7,7 @@ var address = require('./address')
 var asset = require('./asset')
 var blockchain = require('./blockchain')
 var coin = require('./coin')
+var ConfigStorage = require('./ConfigStorage')
 var history = require('./history')
 var tx = require('./tx')
 
@@ -20,7 +21,6 @@ var tx = require('./tx')
  * @class Wallet
  *
  * @param {Object} opts
- * @param {(Buffer|string)} [opts.masterKey] Seed for hierarchical deterministic wallet
  * @param {boolean} [opts.testnet=false]
  * @param {string} [opts.blockchain='BlockrIo'] Now available only BlockrIo
  */
@@ -32,6 +32,7 @@ function Wallet(opts) {
 
   this.network = opts.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
 
+  this.config = new ConfigStorage()
 
   this.blockchain = new blockchain[opts.blockchain]({ testnet: opts.testnet })
 
@@ -43,12 +44,9 @@ function Wallet(opts) {
 
   this.aStorage = new address.AddressStorage()
   this.aManager = new address.AddressManager(this.aStorage, this.network)
-  if (!_.isUndefined(opts.masterKey))
-    this.aManager.setMasterKeyFromSeed(opts.masterKey)
 
   this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
-  this.adManager.getAllAssets().forEach(this.getSomeAddress.bind(this))
 
   this.coinStorage = new coin.CoinStorage()
   this.coinManager = new coin.CoinManager(this, this.coinStorage)
@@ -59,64 +57,99 @@ function Wallet(opts) {
   this.txDb = new tx.NaiveTxDb(this, this.txStorage)
   this.blockchain.txDb = this.txDb // not good, but else sendCoins with addUnconfirmedTx not working
   this.txFetcher = new tx.TxFetcher(this.txDb, this.blockchain)
-
-  this.txTransformer = new tx.TxTransformer()
 }
 
 Wallet.prototype.getNetwork = function() { return this.network }
-
 Wallet.prototype.getBlockchain = function() { return this.blockchain }
-
 Wallet.prototype.getColorDefinitionManager = function() { return this.cdManager }
-
 Wallet.prototype.getColorData = function() { return this.cData }
-
 Wallet.prototype.getAddressManager = function() { return this.aManager }
-
 Wallet.prototype.getAssetDefinitionManager = function() { return this.adManager }
-
 Wallet.prototype.getCoinManager = function() { return this.coinManager }
-
+Wallet.prototype.getCoinQuery = function() { return new coin.CoinQuery(this) }
 Wallet.prototype.getHistoryManager = function() { return this.historyManager }
-
 Wallet.prototype.getTxDb = function() { return this.txDb }
-
 Wallet.prototype.getTxFetcher = function() { return this.txFetcher }
 
 /**
- * @param {string} seed
+ * @return {boolean}
  */
-Wallet.prototype.setMasterKeyFromSeed = function(seed) {
-  this.getAddressManager().setMasterKeyFromSeed(seed)
+Wallet.prototype.isInitialized = function() {
+  return this.config.get('initialized') || false
 }
 
 /**
+ * @throws {Error} If not initialized
+ */
+Wallet.prototype.isInitializedCheck = function() {
+  if (!this.isInitialized())
+    throw new Error('Wallet not initialized')
+}
+
+/**
+ * @param {(Buffer|string)} seed
+ * @throws {Error} If already initialized
+ */
+Wallet.prototype.initialize = function(seed) {
+  if (this.isInitialized())
+    throw new Error('Wallet already initialized')
+
+  var addressManager = this.getAddressManager()
+  this.getAssetDefinitionManager().getAllAssets().forEach(function(assetdef) {
+    if (addressManager.getAllAddresses(assetdef).length === 0)
+      addressManager.getNewAddress(seed, assetdef)
+  })
+
+  this.config.set('initialized', true)
+}
+
+/**
+ * @param {(Buffer|string)} seed
+ * @throws {Error} If not initialized
+ */
+Wallet.prototype.isCurrentSeed = function(seed) {
+  this.isInitializedCheck()
+  return this.getAddressManager().isCurrentSeed(seed)
+}
+
+
+/**
+ * @param {(Buffer|string)} seed
  * @param {Object} data
  * @param {string[]} data.monikers
  * @param {string[]} data.colorSchemes
  * @param {number} [data.unit=1]
  * @return {AssetDefinition}
- * @throws {Error} If asset already exists
+ * @throws {Error} If asset already exists or not currently seed
  */
-Wallet.prototype.addAssetDefinition = function(data) {
-  var assetdef = this.adManager.createAssetDefinition(data)
-  this.getSomeAddress(assetdef)
+Wallet.prototype.addAssetDefinition = function(seed, data) {
+  this.isInitializedCheck()
+  this.getAddressManager().isCurrentSeedCheck(seed)
+
+  var assetdef = this.getAssetDefinitionManager().createAssetDefinition(data)
+  if (this.getSomeAddress(assetdef) === null)
+    this.getNewAddress(seed, assetdef)
+
   return assetdef
 }
 
 /**
  * @param {string} moniker
  * @return {?AssetDefinition}
+ * @throws {Error} If not initialized
  */
 Wallet.prototype.getAssetDefinitionByMoniker = function(moniker) {
-  return this.adManager.getByMoniker(moniker)
+  this.isInitializedCheck()
+  return this.getAssetDefinitionManager().getByMoniker(moniker)
 }
 
 /**
  * @return {AssetDefinition[]}
+ * @throws {Error} If not initialized
  */
 Wallet.prototype.getAllAssetDefinitions = function() {
-  return this.adManager.getAllAssets()
+  this.isInitializedCheck()
+  return this.getAssetDefinitionManager().getAllAssets()
 }
 
 /**
@@ -128,31 +161,16 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 /**
  * Create new address for given asset
  *
+ * @param {(Buffer|string)} seed
  * @param {AssetDefinition} assetdef
  * @param {boolean} [asColorAddress=false]
  * @return {string}
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If wallet not initialized or not currently seed
  */
-Wallet.prototype.getNewAddress = function(assetdef, asColorAddress) {
-  var address = this.aManager.getNewAddress(assetdef).getAddress()
+Wallet.prototype.getNewAddress = function(seed, assetdef, asColorAddress) {
+  this.isInitializedCheck()
 
-  if (asColorAddress === true)
-    address = assetdef.getId() + '@' + address
-
-  return address
-}
-
-/**
- * Return first address for given asset or create if not exist
- *
- * @param {AssetDefinition} assetdef
- * @param {boolean} [asColorAddress=false]
- * @return {string}
- * @throws {Error} If masterKey not defined
- */
-Wallet.prototype.getSomeAddress = function(assetdef, asColorAddress) {
-  var address = this.aManager.getSomeAddress(assetdef).getAddress()
-
+  var address = this.getAddressManager().getNewAddress(seed, assetdef).getAddress()
   if (asColorAddress === true)
     address = assetdef.getId() + '@' + address
 
@@ -165,10 +183,12 @@ Wallet.prototype.getSomeAddress = function(assetdef, asColorAddress) {
  * @param {AssetDefinition} assetdef
  * @param {boolean} [asColorAddress=false]
  * @return {string[]}
- * @throws {Error} If masterKey not defined
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
-  var addresses = this.aManager.getAllAddresses(assetdef)
+  this.isInitializedCheck()
+
+  var addresses = this.getAddressManager().getAllAddresses(assetdef)
   addresses = addresses.map(function(address) { return address.getAddress() })
 
   if (asColorAddress === true) {
@@ -177,6 +197,24 @@ Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
   }
 
   return addresses
+}
+
+/**
+ * Return first address for given asset or throw Error
+ *
+ * @param {AssetDefinition} assetdef
+ * @param {boolean} [asColorAddress=false]
+ * @return {?string}
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.getSomeAddress = function(assetdef, asColorAddress) {
+  this.isInitializedCheck()
+
+  var addresses = this.getAllAddresses(assetdef, asColorAddress)
+  if (addresses.length > 0)
+    return addresses[0]
+
+  return null
 }
 
 /**
@@ -209,7 +247,7 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
 
   /** Check bitcoin address */
   try {
-    var isValid = bitcoin.Address.fromBase58Check(address).version === this.network.pubKeyHash
+    var isValid = bitcoin.Address.fromBase58Check(address).version === this.getNetwork().pubKeyHash
     return isValid
 
   } catch (e) {
@@ -220,45 +258,40 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
 
 /**
  * @param {Wallet~errorCallback} cb
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.scanAllAddresses = function(cb) {
-  var self = this
+  this.isInitializedCheck()
 
-  var assetdefs = self.getAllAssetDefinitions()
-  var addresses = _.flatten(
-    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+  var addresses =_.chain(this.getAllAssetDefinitions())
+    .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
+    .flatten()
+    .value()
 
   this.getTxFetcher().scanAddressesUnspent(addresses, cb)
 }
 
 /**
  * @param {Wallet~errorCallback} cb
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.fullScanAllAddresses = function(cb) {
-  var self = this
+  this.isInitializedCheck()
 
-  var assetdefs = self.getAllAssetDefinitions()
-  var addresses = _.flatten(
-    assetdefs.map(function(assetdef) { return self.getAllAddresses(assetdef) }))
+  var addresses =_.chain(this.getAllAssetDefinitions())
+    .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
+    .flatten()
+    .value()
 
   this.getTxFetcher().fullScanAddresses(addresses, cb)
 }
 
 /**
- * Return new CoinQuery for request confirmed/unconfirmed coins, balance ...
- *
- * @return {CoinQuery}
- */
-Wallet.prototype.getCoinQuery = function() {
-  return new coin.CoinQuery(this)
-}
-
-/**
- * @param {AssetDefinition} assetdef
  * @param {CoinQuery} coinQuery
+ * @param {AssetDefinition} assetdef
  * @param {function} cb
  */
-Wallet.prototype._getBalance = function(assetdef, coinQuery, cb) {
+Wallet.prototype._getBalance = function(coinQuery, assetdef, cb) {
   var self = this
 
   Q.fcall(function() {
@@ -282,81 +315,37 @@ Wallet.prototype._getBalance = function(assetdef, coinQuery, cb) {
 /**
  * @param {AssetDefinition} assetdef
  * @param {function} cb
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.getAvailableBalance = function(assetdef, cb) {
+  this.isInitializedCheck()
+
   var coinQuery = this.getCoinQuery()
-  this._getBalance(assetdef, coinQuery, cb)
+  this._getBalance(coinQuery, assetdef, cb)
 }
 
 /**
  * @param {AssetDefinition} assetdef
  * @param {function} cb
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.getTotalBalance = function(assetdef, cb) {
+  this.isInitializedCheck()
+
   var coinQuery = this.getCoinQuery().includeUnconfirmed()
-  this._getBalance(assetdef, coinQuery, cb)
+  this._getBalance(coinQuery, assetdef, cb)
 }
 
 /**
  * @param {AssetDefinition} assetdef
  * @param {function} cb
+ * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
+  this.isInitializedCheck()
+
   var coinQuery = this.getCoinQuery().onlyUnconfirmed()
-  this._getBalance(assetdef, coinQuery, cb)
-}
-
-/**
- * @callback Wallet~issueCoins
- * @param {?Error} error
- */
-
-/**
- * @param {string} moniker
- * @param {string} pck
- * @param {number} units
- * @param {number} atoms
- * @param {?} cb
- */
-Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
-  var self = this
-
-  Q.fcall(function() {
-    var colorDefinitionCls = self.cdManager.getColorDefenitionClsForType(pck)
-    if (colorDefinitionCls === null)
-      throw new Error('color scheme ' + pck + ' not recognized')
-
-    var targetAddress = self.aManager.getSomeAddress(colorDefinitionCls).getAddress()
-    var colorValue = new cclib.ColorValue(self.cdManager.getGenesis(), units*atoms)
-    var colorTarget = new cclib.ColorTarget(targetAddress, colorValue)
-
-    var operationalTx = new tx.OperationalTx(self)
-    operationalTx.addTarget(colorTarget)
-
-    return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
-
-  }).then(function(composedTx) {
-    return Q.ninvoke(self.txTransformer, 'transformTx', composedTx, 'signed')
-
-  }).then(function(signedTx) {
-    return Q.ninvoke(self.blockchain, 'sendTx', signedTx).then(function() { return signedTx })
-
-  }).then(function(signedTx) {
-    return Q.ninvoke(self.blockchain, 'getBlockCount').then(function(blockCount) {
-      var colorScheme = [pck, signedTx.getId(), '0', blockCount-1].join(':')
-
-      self.addAssetDefinition({
-        monikers: [moniker],
-        colorSchemes: [colorScheme],
-        unit: atoms
-      })
-
-      var timezoneOffset = new Date().getTimezoneOffset() * 60
-      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
-    })
-
-  }).done(function() { cb(null) }, function(error) { cb(error) })
+  this._getBalance(coinQuery, assetdef, cb)
 }
 
 /**
@@ -372,11 +361,16 @@ Wallet.prototype.issueCoins = function(moniker, pck, units, atoms, cb) {
  */
 
 /**
+ * @param {(Buffer|string)} seed
  * @param {AssetDefinition} assetdef
  * @param {rawTarget[]} rawTargets
  * @param {Wallet~sendCoins} cb
+ * @throws {Error} If wallet not initialized or not currently seed
  */
-Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
+Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
+  this.isInitializedCheck()
+  this.getAddressManager().isCurrentSeedCheck(seed)
+
   var self = this
 
   Q.fcall(function() {
@@ -388,16 +382,16 @@ Wallet.prototype.sendCoins = function(assetdef, rawTargets, cb) {
     var assetTx = new tx.AssetTx(self)
     assetTx.addTargets(assetTargets)
 
-    return Q.ninvoke(self.txTransformer, 'transformTx', assetTx, 'signed')
+    return Q.nfcall(tx.transformTx, assetTx, 'signed', seed)
 
   }).then(function(signedTx) {
     return Q.fcall(function() {
-      return Q.ninvoke(self.blockchain, 'sendTx', signedTx)
+      return Q.ninvoke(self.getBlockchain(), 'sendTx', signedTx)
 
     }).then(function() {
       var timezoneOffset = new Date().getTimezoneOffset() * 60
       var timestamp = Math.round(+new Date()/1000) + timezoneOffset
-      return Q.ninvoke(self.txDb, 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
+      return Q.ninvoke(self.getTxDb(), 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
 
     }).then(function() {
       return signedTx.getId()
@@ -423,25 +417,84 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
     assetdef = null
   }
 
-  this.historyManager.getEntries(function(error, entries) {
-    if (error) {
-      cb(error)
-      return
-    }
-
+  Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
     if (assetdef !== null) {
       var assetId = assetdef.getId()
       entries = entries.filter(function(entry) { return entry.getAsset().getId() === assetId })
     }
 
-    cb(null, entries)
-  })
+    return entries
+
+  }).done(function(entries) { cb(null, entries) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~issueCoins
+ * @param {?Error} error
+ */
+
+/**
+ * @param {(Buffer|string)} seed
+ * @param {string} moniker
+ * @param {string} pck
+ * @param {number} units
+ * @param {number} atoms
+ * @param {Wallet~issueCoins} cb
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
+  this.isInitializedCheck()
+  this.getAddressManager().isCurrentSeedCheck(seed)
+
+  var self = this
+
+  Q.fcall(function() {
+    var colorDefinitionCls = self.getColorDefinitionManager().getColorDefenitionClsForType(pck)
+    if (colorDefinitionCls === null)
+      throw new Error('color scheme ' + pck + ' not recognized')
+
+    var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
+    if (addresses.length === 0)
+      addresses.push(self.getAddressManager().getNewAddress(seed, colorDefinitionCls))
+
+    var targetAddress = addresses[0].getAddress()
+    var colorValue = new cclib.ColorValue(self.getColorDefinitionManager().getGenesis(), units*atoms)
+    var colorTarget = new cclib.ColorTarget(targetAddress, colorValue)
+
+    var operationalTx = new tx.OperationalTx(self)
+    operationalTx.addTarget(colorTarget)
+
+    return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
+
+  }).then(function(composedTx) {
+    return Q.nfcall(tx.transformTx, composedTx, 'signed', seed)
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.getBlockchain(), 'sendTx', signedTx).then(function() { return signedTx })
+
+  }).then(function(signedTx) {
+    return Q.ninvoke(self.getBlockchain(), 'getBlockCount').then(function(blockCount) {
+      var colorScheme = [pck, signedTx.getId(), '0', blockCount-1].join(':')
+
+      self.addAssetDefinition(seed, {
+        monikers: [moniker],
+        colorSchemes: [colorScheme],
+        unit: atoms
+      })
+
+      var timezoneOffset = new Date().getTimezoneOffset() * 60
+      var timestamp = Math.round(+new Date()/1000) + timezoneOffset
+      return Q.ninvoke(self.getTxDb(), 'addUnconfirmedTx', { tx: signedTx, timestamp: timestamp })
+    })
+
+  }).done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 /**
  * Drop all data from storage's
  */
 Wallet.prototype.clearStorage = function() {
+  this.config.clear()
   this.cdStorage.clear()
   this.cDataStorage.clear()
   this.aStorage.clear()
