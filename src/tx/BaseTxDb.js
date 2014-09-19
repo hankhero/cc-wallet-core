@@ -65,7 +65,7 @@ BaseTxDb.prototype.addTx = function(data, cb) {
 
     }).then(function(status) {
       self.storage.addTx(txId, data.tx.toHex(), status, data.timestamp)
-      return Q.ninvoke(self, 'updateTxBlockHeight', txId, status)
+      return Q.ninvoke(self, 'updateTxInfo', txId, status)
 
     }).then(function() {
       self.lastStatusCheck.set(txId, true)
@@ -131,7 +131,7 @@ BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
 
     return Q.ninvoke(self, 'identifyTxStatus', txId).then(function(status) {
       self.storage.setTxStatus(txId, status)
-      return Q.ninvoke(self, 'updateTxBlockHeight', txId, status)
+      return Q.ninvoke(self, 'updateTxInfo', txId, status)
 
     })
 
@@ -143,7 +143,7 @@ BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
  * @param {number} status
  * @param {BaseTxDb~errorCallback} cb
  */
-BaseTxDb.prototype.updateTxBlockHeight = function(txId, status, cb) {
+BaseTxDb.prototype.updateTxInfo = function(txId, status, cb) {
   var self = this
 
   Q.fcall(function() {
