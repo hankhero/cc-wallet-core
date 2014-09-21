@@ -61,6 +61,7 @@ HistoryManager.prototype.getEntries = function(cb) {
     var promise = Q()
     var entries = []
     var coins = _.zipObject(coinList.getCoins().map(function(coin) { return [coin.txId+coin.outIndex, coin] }))
+    var myColorTargets = [];
 
     toposort(transactions).forEach(function(tx) {
       var ins = _.filter(tx.ins.map(function(input) {
@@ -85,13 +86,14 @@ HistoryManager.prototype.getEntries = function(cb) {
         promise = promise.then(function() { return Q.ninvoke(coin, 'getMainColorValue') }).then(function(cv) {
           var cid = cv.getColorId()
           if (_.isUndefined(colorValues[cid]))
-            colorValues[cid] = cv
+            colorValues[cid] = cv;
           else
-            colorValues[cid] = colorValues[cid].plus(cv)
+            colorValues[cid] = colorValues[cid].plus(cv);
+          myColorTargets.push(new cclib.ColorTarget(coin.address, cv));
         })
       })
 
-      var colorTargets = []
+      var colorTargets = [];
       tx.outs.forEach(function(output, index) {
         promise = promise.then(function() {
           if (!_.isUndefined(coins[tx.getId()+index]))
@@ -135,8 +137,18 @@ HistoryManager.prototype.getEntries = function(cb) {
         })
 
         var entryType = HistoryEntry.entryTypes.Send
-        if (ins.length === 0)
-          entryType = HistoryEntry.entryTypes.Receive
+        if (ins.length === 0) {
+            entryType = HistoryEntry.entryTypes.Receive;
+            // replace targets
+            assetTargets = myColorTargets.map(function(ct) {
+                    var scheme = ct.getColorDefinition().getScheme();
+                    var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme);
+                    if (assetdef === null)
+                        throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found');
+                    var assetValue = new AssetValue(assetdef, ct.getValue());
+                    return new AssetTarget(ct.getAddress(), assetValue);
+            });            
+        }
         if (ins.length === tx.ins.length && outs.length === tx.outs.length)
           entryType = HistoryEntry.entryTypes.PaymentToYourself
 
