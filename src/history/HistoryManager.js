@@ -61,7 +61,6 @@ HistoryManager.prototype.getEntries = function(cb) {
     var promise = Q()
     var entries = []
     var coins = _.zipObject(coinList.getCoins().map(function(coin) { return [coin.txId+coin.outIndex, coin] }))
-    var myColorTargets = [];
 
     toposort(transactions).forEach(function(tx) {
       var ins = _.filter(tx.ins.map(function(input) {
@@ -72,7 +71,8 @@ HistoryManager.prototype.getEntries = function(cb) {
         return coins[tx.getId()+index]
       }))
 
-      var colorValues = {}
+      var colorValues = {};
+      var myColorTargets = [];
       ins.forEach(function(coin) {
         promise = promise.then(function() { return Q.ninvoke(coin, 'getMainColorValue') }).then(function(cv) {
           var cid = cv.getColorId()
