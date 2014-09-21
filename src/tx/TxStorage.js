@@ -24,8 +24,8 @@ function TxStorage() {
 
   this.dbKey = this.globalPrefix + 'tx'
 
-  if (!_.isArray(this.store.get(this.dbKey)))
-    this.store.set(this.dbKey, {})
+  //if (!_.isObject(this.store.get(this.dbKey)))
+  //  this.store.set(this.dbKey, {})
 }
 
 inherits(TxStorage, SyncStorage)
