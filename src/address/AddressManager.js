@@ -160,7 +160,7 @@ AddressManager.prototype.getNewAddress = function(seed, definition) {
  * @throws {Error} If unknow chain
  */
 AddressManager.prototype.getAllAddresses = function(definition) {
-  chain = selectChain(definition)
+  var chain = selectChain(definition)
 
   var addresses = this.storage.getAll(chain).map(function(record) {
     return new Address(ECPubKey.fromHex(record.pubKey), this.network)

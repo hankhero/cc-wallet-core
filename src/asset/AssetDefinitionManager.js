@@ -31,7 +31,12 @@ function AssetDefinitionManager(cdManager, storage) {
  * @throws {Error} If data.id or monikers in data.monikers exists
  */
 AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
-  var assetdef = new AssetDefinition(this.cdManager, data)
+  //TODO: this is a hack, need deep comparison
+  var assetdef = this.getByMoniker(data.monikers[0])
+  if (assetdef)
+    return assetdef
+
+  assetdef = new AssetDefinition(this.cdManager, data)
 
   this.storage.add({
     id: assetdef.getId(),

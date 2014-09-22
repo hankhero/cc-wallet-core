@@ -51,7 +51,8 @@ HistoryManager.prototype.getEntries = function(cb) {
         return [entry.tx.getId(), entry]
       })
       .sortBy(function(entry) {
-        return entry[1].blockHeight + entry[1].timestamp/10000000000
+        var value = entry[1].blockHeight + entry[1].timestamp/10000000000
+        return isNaN(value) ? -1 : value
       })
       .value()
 
@@ -72,6 +73,7 @@ HistoryManager.prototype.getEntries = function(cb) {
       }))
 
       var colorValues = {}
+      var myColorTargets = []
       ins.forEach(function(coin) {
         promise = promise.then(function() { return Q.ninvoke(coin, 'getMainColorValue') }).then(function(cv) {
           var cid = cv.getColorId()
@@ -88,6 +90,7 @@ HistoryManager.prototype.getEntries = function(cb) {
             colorValues[cid] = cv
           else
             colorValues[cid] = colorValues[cid].plus(cv)
+          myColorTargets.push(new cclib.ColorTarget(coin.address, cv))
         })
       })
 
@@ -135,8 +138,18 @@ HistoryManager.prototype.getEntries = function(cb) {
         })
 
         var entryType = HistoryEntry.entryTypes.Send
-        if (ins.length === 0)
+        if (ins.length === 0) {
           entryType = HistoryEntry.entryTypes.Receive
+          // replace targets
+          assetTargets = myColorTargets.map(function(ct) {
+            var scheme = ct.getColorDefinition().getScheme()
+            var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
+            if (assetdef === null)
+              throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
+            var assetValue = new AssetValue(assetdef, ct.getValue())
+            return new AssetTarget(ct.getAddress(), assetValue)
+          })
+        }
         if (ins.length === tx.ins.length && outs.length === tx.outs.length)
           entryType = HistoryEntry.entryTypes.PaymentToYourself
 
