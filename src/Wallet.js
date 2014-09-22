@@ -47,6 +47,10 @@ function Wallet(opts) {
 
   this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
+  if (opts.systemAssetDefinitions)
+      opts.systemAssetDefinitions.forEach(function (sad) {
+          this.adManager.createAssetDefinition(sad);
+      }.bind(this));
 
   this.coinStorage = new coin.CoinStorage()
   this.coinManager = new coin.CoinManager(this, this.coinStorage)
