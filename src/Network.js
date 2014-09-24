@@ -1,6 +1,7 @@
 var events = require('events')
 var inherits = require('util').inherits
 
+var cclib = require('coloredcoinjs-lib')
 var _ = require('lodash')
 var Q = require('q')
 var socket = require('socket.io-client')
@@ -44,7 +45,6 @@ function Network(opts) {
   events.EventEmitter.call(this)
 
   this._isInialized = false
-  this._isConnected = false
   this._requestId = 0
   this._requests = {}
 
@@ -82,9 +82,6 @@ Network.prototype.initialize = function() {
   self.socket = socket(self.url, { forceNew: true })
 
   self.socket.on('connect', function() {
-    if (!self._isConnected)
-      self._isConnected = true
-
     self.emit('connect')
   })
 
@@ -124,11 +121,17 @@ Network.prototype.initialize = function() {
     }
 
     var deferred = self._requests[response.id]
-    if (deferred instanceof Q.defer)
-      deferred.resolve(response.result)
+    if (deferred instanceof Q.defer) {
+      if (response.error)
+        deferred.reject(response.error)
+      else
+        deferred.resolve(response.result)
+
+      delete self._requests[response.id]
+    }
   })
 
-  self.request('blockchain.numblocks.subscribe', []).then(function(height) {
+  self.request('blockchain.numblocks.subscribe').then(function(height) {
     self.currentHeight = height
     self.emit('newHeight', self.currentHeight)
   })
@@ -158,7 +161,7 @@ Network.prototype.request = function(method, params) {
 }
 
 /**
- * @param {string} address
+ * @param {Q.Promise} address
  */
 Network.prototype.addressSubscribe = function(address) {
   var deferred = Q.defer()
@@ -178,15 +181,62 @@ Network.prototype.getCurrentHeight = function() {
 
 /**
  * @param {number} height
- * @return {string}
+ * @return {Q.Promise}
  */
-Network.prototype.getHeader = function() {}
+Network.prototype.getHeader = function(height) {
+  return this.request('blockchain.block.get_header', [height])
+}
 
 /**
  * @param {number} index
- * @return {string}
+ * @return {Q.Promise}
  */
-Network.prototype.getChunk = function() {}
+Network.prototype.getChunk = function(index) {
+  return this.request('blockchain.block.get_chunk', [index])
+}
+
+/**
+ * @param {string} txId
+ * @return {Q.Promise}
+ */
+Network.prototype.getTx = function(txId) {
+  return this.request('blockchain.transaction.get', [txId]).then(function(rawTx) {
+    return cclib.Transaction.fromHex(rawTx)
+  })
+}
+
+/**
+ * @param {string} txId
+ * @param {number} height
+ * @return {Q.Promise}
+ */
+Network.prototype.getMerkle = function(txId, height) {
+  return this.request('blockchain.transaction.get_merkle', [txId, height])
+}
+
+/**
+ * @param {cclib.Transaction} tx
+ * @return {Q.Promise}
+ */
+Network.prototype.sendTx = function(tx) {
+  return this.request('blockchain.transaction.broadcast', [tx.toHex()])
+}
+
+/**
+ * @param {string} address
+ * @return {Q.Promise}
+ */
+Network.prototype.getUTXO = function(address) {
+  return this.request('blockchain.address.listunspent', [address])
+}
+
+/**
+ * @param {string} address
+ * @return {Q.Promise}
+ */
+Network.prototype.getHistory = function(address) {
+  return this.request('blockchain.address.get_history', [address])
+}
 
 
 module.exports = Network
