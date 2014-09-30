@@ -260,18 +260,23 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
   }
 }
 
-/**
- * @param {Wallet~errorCallback} cb
- * @throws {Error} If wallet not initialized
- */
-Wallet.prototype.scanAllAddresses = function(cb) {
+
+Wallet.prototype._getAllAddresses = function () {
   this.isInitializedCheck()
 
   var addresses =_.chain(this.getAllAssetDefinitions())
     .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
     .flatten()
     .value()
+  return addresses
+}
 
+/**
+ * @param {Wallet~errorCallback} cb
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.scanAllAddresses = function(cb) {
+  var addresses = this._getAllAddresses()
   this.getTxFetcher().scanAddressesUnspent(addresses, cb)
 }
 
@@ -280,13 +285,7 @@ Wallet.prototype.scanAllAddresses = function(cb) {
  * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.fullScanAllAddresses = function(cb) {
-  this.isInitializedCheck()
-
-  var addresses =_.chain(this.getAllAssetDefinitions())
-    .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
-    .flatten()
-    .value()
-
+  var addresses = this._getAllAddresses()
   this.getTxFetcher().fullScanAddresses(addresses, cb)
 }
 
