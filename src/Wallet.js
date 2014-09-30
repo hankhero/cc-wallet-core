@@ -423,7 +423,13 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
   Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
     if (assetdef !== null) {
       var assetId = assetdef.getId()
-      entries = entries.filter(function(entry) { return entry.getAsset().getId() === assetId })
+      entries = entries.filter(function(entry) {
+        return _.some(entry.getTargets(), function (assetTarget) {
+          var assetValue = assetTarget.getAssetValue(),
+            assetDefinition = assetValue.getAsset()
+          return assetDefinition.getId() === assetId
+        })
+      })
     }
 
     return entries
