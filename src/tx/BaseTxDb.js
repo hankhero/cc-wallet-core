@@ -121,7 +121,8 @@ BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
   var self = this
 
   Q.fcall(function() {
-    if (status === BaseTxDb.TxStatusConfirmed)
+    if (status === BaseTxDb.TxStatusConfirmed &&
+        (! _.isUndefined(self.storage.getByTxId(txId).timestamp)))
       return
 
     if (!_.isUndefined(self.lastStatusCheck.get(txId)))

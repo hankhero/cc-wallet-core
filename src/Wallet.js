@@ -260,18 +260,23 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
   }
 }
 
-/**
- * @param {Wallet~errorCallback} cb
- * @throws {Error} If wallet not initialized
- */
-Wallet.prototype.scanAllAddresses = function(cb) {
+
+Wallet.prototype._getAllAddresses = function () {
   this.isInitializedCheck()
 
   var addresses =_.chain(this.getAllAssetDefinitions())
     .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
     .flatten()
     .value()
+  return addresses
+}
 
+/**
+ * @param {Wallet~errorCallback} cb
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.scanAllAddresses = function(cb) {
+  var addresses = this._getAllAddresses()
   this.getTxFetcher().scanAddressesUnspent(addresses, cb)
 }
 
@@ -280,13 +285,7 @@ Wallet.prototype.scanAllAddresses = function(cb) {
  * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.fullScanAllAddresses = function(cb) {
-  this.isInitializedCheck()
-
-  var addresses =_.chain(this.getAllAssetDefinitions())
-    .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
-    .flatten()
-    .value()
-
+  var addresses = this._getAllAddresses()
   this.getTxFetcher().fullScanAddresses(addresses, cb)
 }
 
@@ -424,7 +423,13 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
   Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
     if (assetdef !== null) {
       var assetId = assetdef.getId()
-      entries = entries.filter(function(entry) { return entry.getAsset().getId() === assetId })
+      entries = entries.filter(function(entry) {
+        return _.some(entry.getTargets(), function (assetTarget) {
+          var assetValue = assetTarget.getAssetValue(),
+            assetDefinition = assetValue.getAsset()
+          return assetDefinition.getId() === assetId
+        })
+      })
     }
 
     return entries
