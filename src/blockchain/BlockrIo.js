@@ -301,8 +301,8 @@ BlockrIo.prototype.getUTXO = function(address, cb) {
   var self = this
 
   Q.fcall(function() {
-    var rnd = (Math.random()+1).toString();
-    return Q.ninvoke(self, 'request', '/api/v1/address/unspent/' + address + '?unconfirmed=' + rnd);
+    var rnd = (Math.random()+1).toString()
+    return Q.ninvoke(self, 'request', '/api/v1/address/unspent/' + address + '?unconfirmed=' + rnd)
 
   }).then(function(response) {
     if (response.address !== address)
