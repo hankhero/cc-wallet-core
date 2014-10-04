@@ -260,7 +260,9 @@ Wallet.prototype.checkAddress = function(assetdef, address) {
   }
 }
 
-
+/**
+ * @return {string[]}
+ */
 Wallet.prototype._getAllAddresses = function () {
   this.isInitializedCheck()
 
@@ -268,6 +270,7 @@ Wallet.prototype._getAllAddresses = function () {
     .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
     .flatten()
     .value()
+
   return addresses
 }
 
@@ -424,10 +427,9 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
     if (assetdef !== null) {
       var assetId = assetdef.getId()
       entries = entries.filter(function(entry) {
-        return _.some(entry.getTargets(), function (assetTarget) {
-          var assetValue = assetTarget.getAssetValue(),
-            assetDefinition = assetValue.getAsset()
-          return assetDefinition.getId() === assetId
+        return entry.getTargets().some(function(assetTarget) {
+          var targetAssetId = assetTarget.getAsset().getId()
+          return targetAssetId === assetId
         })
       })
     }

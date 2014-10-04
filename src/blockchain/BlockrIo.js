@@ -95,41 +95,46 @@ BlockrIo.prototype.request = function(path, data, cb) {
     timeout: self.requestTimeout
   }
 
-  var deferredRequest = Q.defer(),
-    maxRetries = 5,
-    retries = maxRetries,
-    retryTime = 100,
-    doRequest = function () {
-      Q.nfcall(request, requestOpts).spread(function(response, body) {
-        if (response.statusCode !== 200)
-          throw new Error('Request error: ' + response.statusMessage)
-    
-        var result = JSON.parse(body)
-        if (result.status !== 'success') {
-          if (result.message === 'Too many requests. Wait a bit...') {
-            retries = retries - 1;
-            if (retries > 0) {
-              window.setTimeout(doRequest, retryTime);
-              retryTime = retryTime * 2;
-              return;
-            }
-            else {
-                deferredRequest.reject(new Error(
-                    'Blockr complained about too many request (' 
-                    + maxRetries + ' x ' + retryTime + 'ms.).'))
-            }
-          }
-          deferredRequest.reject(new Error(result.message || 'Bad data'))
-        }
-    
+  var maxRetries = 5
+  var retries = maxRetries
+  var retryTime = 50
+
+  /**
+   * @return {Q.Promise}
+   */
+  function doRequest() {
+    return Q.nfcall(request, requestOpts).spread(function(response, body) {
+      if (response.statusCode !== 200)
+        throw new Error('Request error: ' + response.statusMessage)
+
+      var result = JSON.parse(body)
+      if (result.status === 'success') {
         self.cache.set(path, result.data)
-        deferredRequest.resolve(result.data)
+        return result.data
       }
-    )
-  };
-  doRequest()
-  deferredRequest.promise.then(function(response) { cb(null, response) })
-    .fail(function(error) { cb(error) })
+
+      if (result.message === 'Too many requests. Wait a bit...') {
+        if (--retries === 0) {
+          var msg = [
+            'Blockr complained about too many request (',
+            maxRetries,
+            ' x ',
+            retryTime,
+            'ms.).'
+          ].join('')
+
+          throw new Error(msg)
+        }
+
+        retryTime = retryTime * 2
+        return Q.delay(retryTime).then(doRequest)
+      }
+
+      throw new Error(result.message || 'Bad data')
+    })
+  }
+
+  return doRequest().done(function(data) { cb(null, data) }, function(error) { cb(error) })
 }
 
 /**
