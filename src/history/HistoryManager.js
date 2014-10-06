@@ -90,7 +90,7 @@ HistoryManager.prototype.getEntries = function(cb) {
             colorValues[cid] = cv
           else
             colorValues[cid] = colorValues[cid].plus(cv)
-          myColorTargets.push(new cclib.ColorTarget(coin.address, cv))
+          myColorTargets.push(new cclib.ColorTarget(coin.script, cv))
         })
       })
 
@@ -111,7 +111,7 @@ HistoryManager.prototype.getEntries = function(cb) {
           })
 
           return Q.ninvoke(coin, 'getMainColorValue').then(function(cv) {
-            colorTargets.push(new cclib.ColorTarget(address, cv))
+            colorTargets.push(new cclib.ColorTarget(script.toBuffer(), cv))
           })
         })
       })
@@ -119,8 +119,8 @@ HistoryManager.prototype.getEntries = function(cb) {
       promise = promise.then(function() {
         var assetValues = {}
         _.values(colorValues).forEach(function(cv) {
-          var scheme = cv.getColorDefinition().getScheme()
-          var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
+          var desc = cv.getColorDefinition().getDesc()
+          var assetdef = self.wallet.getAssetDefinitionManager().getByDesc(desc)
           if (assetdef === null)
             throw new Error('asset for ColorValue ' + cv + ' not found')
           if (!_.isUndefined(assetValues[assetdef.getId()]))
@@ -129,12 +129,12 @@ HistoryManager.prototype.getEntries = function(cb) {
         })
 
         var assetTargets = colorTargets.map(function(ct) {
-          var scheme = ct.getColorDefinition().getScheme()
-          var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
+          var desc = ct.getColorDefinition().getDesc()
+          var assetdef = self.wallet.getAssetDefinitionManager().getByDesc(desc)
           if (assetdef === null)
             throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
           var assetValue = new AssetValue(assetdef, ct.getValue())
-          return new AssetTarget(ct.getAddress(), assetValue)
+          return new AssetTarget(ct.getScript(), assetValue)
         })
 
         var entryType = HistoryEntry.entryTypes.Send
@@ -142,12 +142,12 @@ HistoryManager.prototype.getEntries = function(cb) {
           entryType = HistoryEntry.entryTypes.Receive
           // replace targets
           assetTargets = myColorTargets.map(function(ct) {
-            var scheme = ct.getColorDefinition().getScheme()
-            var assetdef = self.wallet.getAssetDefinitionManager().getByScheme(scheme)
+            var desc = ct.getColorDefinition().getDesc()
+            var assetdef = self.wallet.getAssetDefinitionManager().getByDesc(desc)
             if (assetdef === null)
               throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
             var assetValue = new AssetValue(assetdef, ct.getValue())
-            return new AssetTarget(ct.getAddress(), assetValue)
+            return new AssetTarget(ct.getScript(), assetValue)
           })
         }
         if (ins.length === tx.ins.length && outs.length === tx.outs.length)

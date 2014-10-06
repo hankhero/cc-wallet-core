@@ -5,8 +5,7 @@ var cclib = require('coloredcoinjs-lib')
 
 /*
  * @class SyncStorage
- *
- * Inherits coloredcoinjs-lib.SyncStorage
+ * @extends coloredcoinjs-lib.SyncStorage
  *
  * @param {Object} opts
  * @param {string} [opts.globalPrefix=cc_wallet_]

@@ -5,11 +5,14 @@ var cclib = require('coloredcoinjs-lib')
 
 /**
  * @class OperationalTx
+ * @extends cclib.OperationalTx
  *
  * @param {Wallet} wallet
  * @param {AssetDefinition} assetdef
  */
 function OperationalTx(wallet) {
+  cclib.OperationalTx.call(this)
+
   this.wallet = wallet
   this.targets = []
 }
@@ -22,7 +25,6 @@ util.inherits(OperationalTx, cclib.OperationalTx)
  * @param {ColorTarget} target
  */
 OperationalTx.prototype.addTarget = function(target) {
-
   this.targets.push(target)
 }
 

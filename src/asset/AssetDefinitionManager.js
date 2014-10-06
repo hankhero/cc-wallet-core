@@ -16,7 +16,7 @@ function AssetDefinitionManager(cdManager, storage) {
 
     this.createAssetDefinition({
       monikers: ['bitcoin'],
-      colorSchemes: [uncoloredColorDefinition.getScheme()],
+      colorDescs: [uncoloredColorDefinition.getDesc()],
       unit: 100000000
     })
   }
@@ -25,7 +25,7 @@ function AssetDefinitionManager(cdManager, storage) {
 /**
  * @param {Object} data
  * @param {string[]} data.monikers
- * @param {string[]} data.colorSchemes
+ * @param {string[]} data.colorDescs
  * @param {number} [data.unit=1]
  * @return {AssetDefinition}
  * @throws {Error} If data.id or monikers in data.monikers exists
@@ -41,7 +41,7 @@ AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
   this.storage.add({
     id: assetdef.getId(),
     monikers: assetdef.getMonikers(),
-    colorSchemes: assetdef.getColorSet().getColorSchemes(),
+    colorDescs: assetdef.getColorSet().getColorDescs(),
     unit: assetdef.getData().unit
   })
 
@@ -62,11 +62,11 @@ AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
 }
 
 /**
- * @param {string} scheme
+ * @param {string} desc
  * @return {?AssetDefinition}
  */
-AssetDefinitionManager.prototype.getByScheme = function(scheme) {
-  var result = this.storage.getByScheme(scheme)
+AssetDefinitionManager.prototype.getByDesc = function(desc) {
+  var result = this.storage.getByDesc(desc)
 
   if (result !== null)
     result = new AssetDefinition(this.cdManager, result)

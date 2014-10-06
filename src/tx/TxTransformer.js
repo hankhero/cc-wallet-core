@@ -124,7 +124,7 @@ function transformComposedTx(composedTx, targetKind, seed, cb) {
       tx.addInput(txIn.txId, txIn.outIndex, txIn.sequence)
     })
     composedTx.getTxOuts().forEach(function(txOut) {
-      tx.addOutput(txOut.address, txOut.value)
+      tx.addOutput(bitcoin.Script.fromBuffer(txOut.script), txOut.value)
     })
 
     composedTx.getTxIns().forEach(function(txIn, index) {

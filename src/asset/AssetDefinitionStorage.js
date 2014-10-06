@@ -9,14 +9,13 @@ var SyncStorage = require('../SyncStorage')
  * @typedef {Object} AssetDefinitionRecord
  * @param {string} id
  * @param {string[]} monikers
- * @param {string[]} colorSchemes
+ * @param {string[]} colorDescs
  * @param {number} unit
  */
 
 /**
  * @class AssetDefinitionStorage
- *
- * Inherits SyncStorage
+ * @extends SyncStorage
  */
 function AssetDefinitionStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))
@@ -44,15 +43,15 @@ AssetDefinitionStorage.prototype.add = function(data) {
     if (someMoniker)
       throw new Error('exists asset already have same moniker')
 
-    var someColorScheme = data.colorSchemes.some(function(cs) { return record.colorSchemes.indexOf(cs) !== -1 })
-    if (someColorScheme)
-      throw new Error('exists asset already have same colorScheme')
+    var someColorDesc = data.colorDescs.some(function(cs) { return record.colorDescs.indexOf(cs) !== -1 })
+    if (someColorDesc)
+      throw new Error('exists asset already have same colorDesc')
   })
 
   records.push({
     id: data.id,
     monikers: data.monikers,
-    colorSchemes: data.colorSchemes,
+    colorDescs: data.colorDescs,
     unit: data.unit
   })
 
@@ -75,12 +74,12 @@ AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
 }
 
 /**
- * @param {string} scheme
+ * @param {string} desc
  * @return {?AssetDefinitionRecord}
  */
-AssetDefinitionStorage.prototype.getByScheme = function(scheme) {
+AssetDefinitionStorage.prototype.getByDesc = function(desc) {
   var records = this.getAll().filter(function(record) {
-    return (record.colorSchemes.indexOf(scheme) !== -1)
+    return (record.colorDescs.indexOf(desc) !== -1)
   })
 
   if (records.length === 0)

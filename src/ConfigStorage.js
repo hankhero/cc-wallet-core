@@ -6,8 +6,7 @@ var SyncStorage = require('./SyncStorage')
 
 /**
  * @class ConfigStorage
- *
- * Inherits SyncStorage
+ * @extends SyncStorage
  */
 function ConfigStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))

@@ -15,8 +15,7 @@ var SyncStorage = require('../SyncStorage')
 
 /**
  * @class AddressStorage
- *
- * Inherits SyncStorage
+ * @extends SyncStorage
  */
 function AddressStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))

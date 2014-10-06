@@ -9,7 +9,7 @@ describe('asset.AssetDefinition', function() {
   var cdStorage, cdManager, assetdef
   var bitcoinData = {
     monikers: ['bitcoin'],
-    colorSchemes: [''],
+    colorDescs: [''],
     unit: 100000000
   }
 
@@ -23,7 +23,7 @@ describe('asset.AssetDefinition', function() {
   it('constructor throw error', function() {
     var data = {
       monikers: ['bitcoin'],
-      colorSchemes: [''],
+      colorDescs: [''],
       unit: 2
     }
     var fn = function() { new AssetDefinition(cdManager, data) }
@@ -99,7 +99,7 @@ describe('asset.AssetDefinition', function() {
   it('getData', function() {
     expect(assetdef.getData()).to.deep.equal({
       monikers: ['bitcoin'],
-      colorSchemes: [''],
+      colorDescs: [''],
       unit: 100000000
     })
   })

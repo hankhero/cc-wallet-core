@@ -14,8 +14,7 @@ var BlockchainBase = require('./BlockchainBase')
  * BlockchainState that uses [Blockr.io API]{@link http://btc.blockr.io/documentation/api}
  *
  * @class BlockrIo
- *
- * Inherits BlockchainBase
+ * @extends BlockchainBase
  *
  * @param {Object} opts
  * @param {boolean} opts.testnet

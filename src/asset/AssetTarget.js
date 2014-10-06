@@ -3,19 +3,19 @@
  *
  * As ColorTarget, just for asset
  *
- * @param {string} address
+ * @param {Buffer} address
  * @param {AssetValue} assetValue
  */
-function AssetTarget(address, assetValue) {
-  this.address = address
+function AssetTarget(script, assetValue) {
+  this.script = script
   this.assetValue = assetValue
 }
 
 /**
- * @return {string}
+ * @return {Buffer}
  */
-AssetTarget.prototype.getAddress = function() {
-  return this.address
+AssetTarget.prototype.getScript = function() {
+  return this.script
 }
 
 /**

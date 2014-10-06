@@ -16,8 +16,7 @@ var SyncStorage = require('../SyncStorage')
 
 /**
  * @class TxStorage
- *
- * Inherits SyncStorage
+ * @extends SyncStorage
  */
 function TxStorage() {
   SyncStorage.apply(this, Array.prototype.slice.call(arguments))

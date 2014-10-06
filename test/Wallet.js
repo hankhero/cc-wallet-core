@@ -13,7 +13,7 @@ describe('Wallet', function() {
   var seed = '123131123131123131123131123131123131123131123131123131'
   var goldAsset = {
     monikers: ['gold'],
-    colorSchemes: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
+    colorDescs: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
     unit: 10
   }
 
@@ -77,7 +77,7 @@ describe('Wallet', function() {
       wallet.initialize(seed)
       var result = wallet.getAssetDefinitionByMoniker('bitcoin')
       expect(result).to.be.instanceof(AssetDefinition)
-      expect(result.getData()).to.deep.equal({ monikers: ['bitcoin'], colorSchemes: [''], unit: 100000000 })
+      expect(result.getData()).to.deep.equal({ monikers: ['bitcoin'], colorDescs: [''], unit: 100000000 })
     })
 
     it('getAllAssetDefinitions need initialization', function() {
@@ -90,7 +90,7 @@ describe('Wallet', function() {
       var result = wallet.getAllAssetDefinitions()
       expect(result).to.have.length(1)
       expect(result[0]).to.be.instanceof(AssetDefinition)
-      expect(result[0].getData()).to.deep.equal({ monikers: ['bitcoin'], colorSchemes: [''], unit: 100000000 })
+      expect(result[0].getData()).to.deep.equal({ monikers: ['bitcoin'], colorDescs: [''], unit: 100000000 })
     })
   })
 
@@ -148,6 +148,7 @@ describe('Wallet', function() {
       wallet.initialize(seed)
       wallet.addAssetDefinition(seed, goldAsset)
       wallet.fullScanAllAddresses(function(error) {
+        if (error) throw error
         expect(error).to.be.null
         done()
       })
@@ -200,7 +201,7 @@ describe('Wallet', function() {
       wallet = new Wallet({ masterKey: '421fc385fdae762b346b80e0212f77bd', testnet: true })
       var data = {
         monikers: ['gold'],
-        colorSchemes: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
+        colorDescs: ['epobc:b77b5d214b2f9fd23b377cbbf443a9da445fd7c6c24ba1b92d3a3bfdf26aabf2:0:273921'],
         unit: 10000
       }
       var assetdef = wallet.addAssetDefinition(data)

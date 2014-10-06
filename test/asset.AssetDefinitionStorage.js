@@ -12,7 +12,7 @@ describe('asset.AssetDefinitionStorage', function() {
     storage.add({
       ids: ['111', '123'],
       monikers: ['gold'],
-      colorSchemes: ['scheme1', 'scheme2'],
+      colorDescs: ['desc1', 'desc1'],
       unit: 10
     })
   })
@@ -30,7 +30,7 @@ describe('asset.AssetDefinitionStorage', function() {
     var data = {
       ids: ['113', '123'],
       monikers: ['silver'],
-      colorSchemes: [''],
+      colorDescs: [''],
       unit: 1
     }
     var fn = function() { storage.add(data) }
@@ -41,7 +41,7 @@ describe('asset.AssetDefinitionStorage', function() {
     var data = {
       ids: ['113'],
       monikers: ['gold'],
-      colorSchemes: [''],
+      colorDescs: [''],
       unit: 1
     }
     var fn = function() { storage.add(data) }

@@ -121,7 +121,7 @@ Wallet.prototype.isCurrentSeed = function(seed) {
  * @param {(Buffer|string)} seed
  * @param {Object} data
  * @param {string[]} data.monikers
- * @param {string[]} data.colorSchemes
+ * @param {string[]} data.colorDescs
  * @param {number} [data.unit=1]
  * @return {AssetDefinition}
  * @throws {Error} If asset already exists or not currently seed
@@ -381,8 +381,9 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
 
   Q.fcall(function() {
     var assetTargets = rawTargets.map(function(target) {
+      var script = bitcoin.Address.fromBase58Check(target.address).toOutputScript()
       var assetValue = new asset.AssetValue(assetdef, target.value)
-      return new asset.AssetTarget(target.address, assetValue)
+      return new asset.AssetTarget(script.toBuffer(), assetValue)
     })
 
     var assetTx = new tx.AssetTx(self)
@@ -462,15 +463,16 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
   Q.fcall(function() {
     var colorDefinitionCls = self.getColorDefinitionManager().getColorDefenitionClsForType(pck)
     if (colorDefinitionCls === null)
-      throw new Error('color scheme ' + pck + ' not recognized')
+      throw new Error('color desc ' + pck + ' not recognized')
 
     var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
     if (addresses.length === 0)
       addresses.push(self.getAddressManager().getNewAddress(seed, colorDefinitionCls))
 
     var targetAddress = addresses[0].getAddress()
+    var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()
     var colorValue = new cclib.ColorValue(self.getColorDefinitionManager().getGenesis(), units*atoms)
-    var colorTarget = new cclib.ColorTarget(targetAddress, colorValue)
+    var colorTarget = new cclib.ColorTarget(targetScript.toBuffer(), colorValue)
 
     var operationalTx = new tx.OperationalTx(self)
     operationalTx.addTarget(colorTarget)
@@ -485,11 +487,11 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
 
   }).then(function(signedTx) {
     return Q.ninvoke(self.getBlockchain(), 'getBlockCount').then(function(blockCount) {
-      var colorScheme = [pck, signedTx.getId(), '0', blockCount-1].join(':')
+      var colorDesc = [pck, signedTx.getId(), '0', blockCount-1].join(':')
 
       self.addAssetDefinition(seed, {
         monikers: [moniker],
-        colorSchemes: [colorScheme],
+        colorDescs: [colorDesc],
         unit: atoms
       })
 

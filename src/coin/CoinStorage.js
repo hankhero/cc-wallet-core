@@ -16,8 +16,7 @@ var SyncStorage = require('../SyncStorage')
 
 /**
  * @class CoinStorage
- *
- * Inherits SyncStorage
+ * @extends SyncStorage
  *
  * Coin spends stored in separate table, because one block
  *  may contains not linking transactions and then toposort not be working

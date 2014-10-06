@@ -8,7 +8,7 @@ var cclib = require('coloredcoinjs-lib')
  * AssetDefinition description
  * @typedef {Object} AssetDefinitionDesc
  * @param {string[]} monikers
- * @param {string[]} colorSchemes
+ * @param {string[]} colorDescs
  * @param {number} [unit=1] Power of 10 and greater than 0
  */
 
@@ -20,14 +20,14 @@ var cclib = require('coloredcoinjs-lib')
  * @throws {Error} If data.unit not power of 10
  */
 function AssetDefinition(colorDefinitionManager, data) {
-  assert(data.colorSchemes.length === 1, 'Currently only single-color assets are supported')
+  assert(data.colorDescs.length === 1, 'Currently only single-color assets are supported')
 
   data.unit = _.isUndefined(data.unit) ? 1 : data.unit
   if (Math.log(data.unit) / Math.LN10 % 1 !== 0)
     throw new Error('data.unit must be power of 10 and greater than 0')
 
   this.monikers = data.monikers
-  this.colorSet = new cclib.ColorSet(colorDefinitionManager, data.colorSchemes)
+  this.colorSet = new cclib.ColorSet(colorDefinitionManager, data.colorDescs)
   this.unit = data.unit
 }
 
@@ -37,7 +37,7 @@ function AssetDefinition(colorDefinitionManager, data) {
 AssetDefinition.prototype.getData = function() {
   return {
     monikers: this.monikers,
-    colorSchemes: this.colorSet.getColorSchemes(),
+    colorDescs: this.colorSet.getColorDescs(),
     unit: this.unit
   }
 }

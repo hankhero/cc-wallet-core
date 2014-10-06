@@ -81,7 +81,7 @@ AssetTx.prototype.makeOperationalTx = function() {
 
   var colorTargets = this.targets.map(function(target) {
     var colorValue = new cclib.ColorValue(colordef, target.getValue())
-    return new cclib.ColorTarget(target.getAddress(), colorValue)
+    return new cclib.ColorTarget(target.getScript(), colorValue)
   })
 
   var operationalTx = new OperationalTx(this.wallet)
