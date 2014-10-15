@@ -15,7 +15,6 @@
     "url": "https://github.com/chromaway/cc-wallet-core"
   },
   "dependencies": {
-    "bitcoinjs-lib": "1.0.2",
     "browser-request": "0.3.2",
     "coloredcoinjs-lib": "git://github.com/chromaway/coloredcoinjs-lib.git#v0.0.3",
     "lodash": "2.4.1",

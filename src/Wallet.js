@@ -1,7 +1,7 @@
 var _ = require('lodash')
 var Q = require('q')
-var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
+var bitcoin = cclib.bitcoin
 
 var address = require('./address')
 var asset = require('./asset')

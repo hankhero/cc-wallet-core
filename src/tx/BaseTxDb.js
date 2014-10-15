@@ -32,7 +32,7 @@ BaseTxDb.TxStatusInvalid = 3
 
 /**
  * @param {Object} data
- * @param {coloredcoinjs-lib.Transaction} data.tx
+ * @param {bitcoinjs-lib.Transaction} data.tx
  * @param {number} [data.timestamp]
  * @param {BaseTxDb~errorCallback} cb
  */
@@ -43,7 +43,7 @@ BaseTxDb.prototype.addUnconfirmedTx = function(data, cb) {
 
 /**
  * @param {Object} data
- * @param {coloredcoinjs-lib.Transaction} data.tx
+ * @param {bitcoinjs-lib.Transaction} data.tx
  * @param {number} [data.status]
  * @param {number} [data.timestamp]
  * @param {BaseTxDb~errorCallback} cb
@@ -78,7 +78,7 @@ BaseTxDb.prototype.addTx = function(data, cb) {
 
 /**
  * @param {string} txId
- * @return {?coloredcoinjs-lib.Transaction}
+ * @return {?bitcoinjs-lib.Transaction}
  */
 BaseTxDb.prototype.getTxById = function(txId) {
   var record = this.storage.getByTxId(txId)

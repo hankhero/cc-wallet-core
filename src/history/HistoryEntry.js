@@ -2,7 +2,7 @@
  * @class HistoryEntry
  *
  * @param {Object} data
- * @param {coloredcoinjs-lib.Transaction} data.tx
+ * @param {bitcoinjs-lib.Transaction} data.tx
  * @param {number} data.blockHeight
  * @param {number} data.timestamp
  * @param {AssetValue[]} data.values

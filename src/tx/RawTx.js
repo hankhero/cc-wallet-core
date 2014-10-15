@@ -56,9 +56,7 @@ RawTx.fromComposedTx = function(composedTx) {
   var rawTx = new RawTx()
 
   composedTx.getTxIns().forEach(function(txIn) {
-    // Todo: change coin to object with default sequence in cc-lib
-    //var sequence = txIn.sequence || bitcoin.Transaction.DEFAULT_SEQUENCE
-    rawTx.txb.addInput(txIn.txId, txIn.outIndex)//, sequence, txIn.script)
+    rawTx.txb.addInput(txIn.txId, txIn.outIndex)
   })
 
   composedTx.getTxOuts().forEach(function(txOut) {

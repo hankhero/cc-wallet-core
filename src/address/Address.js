@@ -1,6 +1,6 @@
 var assert = require('assert')
 
-var bitcoin = require('bitcoinjs-lib')
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 var ECPubKey = bitcoin.ECPubKey
 var networks = Object.keys(bitcoin.networks).map(function(key) { return bitcoin.networks[key] })
 

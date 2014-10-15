@@ -165,13 +165,13 @@ BlockrIo.prototype.getBlockCount = function(cb) {
 /**
  * @callback BlockrIo~getTx
  * @param {?Error} error
- * @param {cclib.Transaction} tx
+ * @param {bitcoinjs-lib.Transaction} tx
  */
 
 /**
  * Get transaction by txId
  *
- * @param {string} txId cclib.Transaction id
+ * @param {string} txId bitcoinjs-lib.Transaction id
  * @param {BlockrIo~getTx} cb
  */
 BlockrIo.prototype.getTx = function(txId, cb) {
@@ -185,7 +185,7 @@ BlockrIo.prototype.getTx = function(txId, cb) {
     }
 
     return Q.ninvoke(self, 'request', '/api/v1/tx/raw/' + txId).then(function(response) {
-      return cclib.Transaction.fromHex(response.tx.hex)
+      return bitcoinjs-lib.Transaction.fromHex(response.tx.hex)
     })
 
   }).done(function(tx) { cb(null, tx) }, function(error) { cb(error) })
@@ -254,7 +254,7 @@ BlockchainBase.prototype.getBlockTime = function(blockHash, cb) {
 /**
  * Send transaction tx to server which broadcast tx to network
  *
- * @param {cclib.Transaction} tx
+ * @param {bitcoinjs-lib.Transaction} tx
  * @param {BlockrIo~sendTx} cb
  */
 BlockrIo.prototype.sendTx = function(tx, cb) {

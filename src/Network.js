@@ -1,7 +1,7 @@
 var events = require('events')
 var inherits = require('util').inherits
 
-var cclib = require('coloredcoinjs-lib')
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var Q = require('q')
 var socket = require('socket.io-client')
@@ -201,7 +201,7 @@ Network.prototype.getChunk = function(index) {
  */
 Network.prototype.getTx = function(txId) {
   return this.request('blockchain.transaction.get', [txId]).then(function(rawTx) {
-    return cclib.Transaction.fromHex(rawTx)
+    return bitcoin.Transaction.fromHex(rawTx)
   })
 }
 
@@ -215,7 +215,7 @@ Network.prototype.getMerkle = function(txId, height) {
 }
 
 /**
- * @param {cclib.Transaction} tx
+ * @param {bitcoin.Transaction} tx
  * @return {Q.Promise}
  */
 Network.prototype.sendTx = function(tx) {

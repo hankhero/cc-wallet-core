@@ -1,5 +1,5 @@
-var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
+var bitcoin = cclib.bitcoin
 var _ = require('lodash')
 var Q = require('q')
 

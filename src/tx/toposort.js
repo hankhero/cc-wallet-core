@@ -4,8 +4,8 @@ var _ = require('lodash')
 /**
  * Sort transactions (sorted by height) in topological order
  *
- * @param {coloredcoinjs-lib.Transaction[]}
- * @return {coloredcoinjs-lib.Transaction[]}
+ * @param {bitcoinjs-lib.Transaction[]}
+ * @return {bitcoinjs-lib.Transaction[]}
  */
 function toposort(transactions) {
   var transactionsIds = _.zipObject(transactions.map(function(tx) { return [tx.getId(), tx] }))

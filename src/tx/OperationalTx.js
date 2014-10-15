@@ -43,7 +43,6 @@ OperationalTx.prototype.addTargets = function(targets) {
  * @return {ColorTarget[]}
  */
 OperationalTx.prototype.getTargets = function() {
-  // Todo: make copy
   return this.targets
 }
 
@@ -107,7 +106,7 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     var coinQuery = self.wallet.getCoinQuery()
     coinQuery = coinQuery.onlyColoredAs(colordef)
     coinQuery = coinQuery.onlyAddresses(self.wallet.getAllAddresses(colordef))
-    coinQuery = coinQuery.includeUnconfirmed() // Todo: need wait confirmation? may be as option
+    coinQuery = coinQuery.includeUnconfirmed()
 
     return Q.ninvoke(coinQuery, 'getCoins')
 
@@ -121,26 +120,6 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
     if (feeEstimator !== null)
       requiredSum = requiredSum.plus(feeEstimator.estimateRequiredFee({ extraTxIns: coins.length }))
 
-/*
-    function appendUntil(index) {
-      if (selectedCoinsColorValue.getValue() >= requiredSum.getValue())
-        return { coins: selectedCoins, value: selectedCoinsColorValue }
-
-      if (index === coins.length)
-        throw new Error(
-          'not enough coins: ' + requiredSum.getValue() + ' requested, ' + selectedCoinsColorValue.getValue() +' found')
-
-      return Q.ninvoke(coins[index], 'getMainColorValue')
-        .then(function(coinColorValue) {
-          selectedCoinsColorValue = selectedCoinsColorValue.plus(coinColorValue)
-          selectedCoins.push(coins[index])
-
-          return appendUntil(index+1)
-        })
-    }
-
-    return appendUntil(0)
-*/
     var promise = Q()
     coins.forEach(function(coin) {
       promise = promise.then(function() {

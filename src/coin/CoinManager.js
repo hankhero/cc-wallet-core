@@ -1,4 +1,4 @@
-var bitcoin = require('bitcoinjs-lib')
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var Q = require('q')
 
@@ -24,7 +24,7 @@ function CoinManager(wallet, storage) {
  */
 
 /**
- * @param {coloredcoinjs-lib.Transaction} tx
+ * @param {bitcoinjs-lib.Transaction} tx
  * @param {CoinManager~applyTx} cb
  */
 CoinManager.prototype.applyTx = function(tx, cb) {
