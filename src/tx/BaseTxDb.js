@@ -1,4 +1,4 @@
-var cclib = require('coloredcoinjs-lib')
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
@@ -85,7 +85,7 @@ BaseTxDb.prototype.getTxById = function(txId) {
   if (record === null)
     return null
 
-  return cclib.Transaction.fromHex(record.rawTx)
+  return bitcoin.Transaction.fromHex(record.rawTx)
 }
 
 /**

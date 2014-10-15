@@ -389,7 +389,7 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
     var assetTx = new tx.AssetTx(self)
     assetTx.addTargets(assetTargets)
 
-    return Q.nfcall(tx.transformTx, assetTx, 'signed', seed)
+    return Q.nfcall(tx.transformTx, assetTx, 'signed', { wallet: self, seed: seed })
 
   }).then(function(signedTx) {
     return Q.fcall(function() {
@@ -480,7 +480,7 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
     return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
 
   }).then(function(composedTx) {
-    return Q.nfcall(tx.transformTx, composedTx, 'signed', seed)
+    return Q.nfcall(tx.transformTx, composedTx, 'signed', { wallet: self, seed: seed })
 
   }).then(function(signedTx) {
     return Q.ninvoke(self.getBlockchain(), 'sendTx', signedTx).then(function() { return signedTx })

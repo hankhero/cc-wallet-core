@@ -1,19 +1,19 @@
 var _ = require('lodash')
 var Q = require('q')
-var bitcoin = require('bitcoinjs-lib')
 var cclib = require('coloredcoinjs-lib')
+var bitcoin = cclib.bitcoin
 
 var AssetTx = require('./AssetTx')
 var OperationalTx = require('./OperationalTx')
 var ComposedTx = cclib.ComposedTx
-var Transaction = cclib.Transaction
+var RawTx = require('./RawTx')
 
 
 /**
  * For a given transaction tx, returns a string that represents
  *  the type of transaction (asset, operational, composed, signed) that it is
  *
- * @param {(AssetTx|OperationalTx|ComposedTx|Transaction)} tx
+ * @param {(AssetTx|OperationalTx|ComposedTx|RawTx|Transaction)} tx
  * @return {?string}
  */
 function classifyTx(tx) {
@@ -26,7 +26,10 @@ function classifyTx(tx) {
   if (tx instanceof ComposedTx)
     return 'composed'
 
-  if (tx instanceof Transaction) {
+  if (tx instanceof RawTx)
+    return 'raw'
+
+  if (tx instanceof bitcoin.Transaction) {
     var isSigned = tx.ins.every(function(input) { return input.script !== bitcoin.Script.EMPTY })
     if (isSigned)
       return 'signed'
@@ -47,19 +50,19 @@ function classifyTx(tx) {
  *
  * @param {AssetTx} assetTx
  * @param {string} targetKind
- * @param {(Buffer|string)} seed
+ * @param {Object} opts
  * @param {transformAssetTx~callback} cb
  */
-function transformAssetTx(assetTx, targetKind, seed, cb) {
+function transformAssetTx(assetTx, targetKind, opts, cb) {
   Q.fcall(function() {
-    if (['operational', 'composed', 'signed'].indexOf(targetKind) === -1)
+    if (['operational', 'composed', 'raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform assetTx')
 
     if (!assetTx.isMonoColor())
       throw new Error('multi color AssetTx not supported')
 
     var operationalTx = assetTx.makeOperationalTx()
-    return Q.nfcall(transformTx, operationalTx, targetKind, seed)
+    return Q.nfcall(transformTx, operationalTx, targetKind, opts)
 
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
@@ -76,12 +79,12 @@ function transformAssetTx(assetTx, targetKind, seed, cb) {
  *
  * @param {OperationalTx} operationalTx
  * @param {string} targetKind
- * @param {(Buffer|string)} seed
+ * @param {Object} opts
  * @param {transformOperationalTx~callback} cb
  */
-function transformOperationalTx(operationalTx, targetKind, seed, cb) {
+function transformOperationalTx(operationalTx, targetKind, opts, cb) {
   Q.fcall(function() {
-    if (['composed', 'signed'].indexOf(targetKind) === -1)
+    if (['composed', 'raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform operationalTx')
 
     if (!operationalTx.isMonoColor())
@@ -94,7 +97,7 @@ function transformOperationalTx(operationalTx, targetKind, seed, cb) {
     return Q.nfcall(composer, operationalTx)
 
   }).then(function(composedTx) {
-    return Q.nfcall(transformTx, composedTx, targetKind, seed)
+    return Q.nfcall(transformTx, composedTx, targetKind, opts)
 
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
@@ -107,41 +110,53 @@ function transformOperationalTx(operationalTx, targetKind, seed, cb) {
 
 /**
  * Takes a ComposedTx composedTx and returns a transaction
- *  of type targetKind which is one of (signed)
+ *  of type targetKind which is one of (raw, signed)
  *
  * @param {ComposedTx} composedTx
  * @param {string} targetKind
- * @param {(Buffer|string)} seed
+ * @param {Object} opts
  * @param {transformComposedTx~callback} cb
  */
-function transformComposedTx(composedTx, targetKind, seed, cb) {
+function transformComposedTx(composedTx, targetKind, opts, cb) {
   Q.fcall(function() {
-    if (['signed'].indexOf(targetKind) === -1)
+    if (['raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform composedTx')
 
-    var tx = new bitcoin.Transaction()
-    composedTx.getTxIns().forEach(function(txIn) {
-      tx.addInput(txIn.txId, txIn.outIndex, txIn.sequence)
-    })
-    composedTx.getTxOuts().forEach(function(txOut) {
-      tx.addOutput(bitcoin.Script.fromBuffer(txOut.script), txOut.value)
-    })
+    return RawTx.fromComposedTx(composedTx)
 
-    composedTx.getTxIns().forEach(function(txIn, index) {
-      var privKey = composedTx.operationalTx.wallet.getAddressManager().getPrivKeyByAddress(seed, txIn.address)
-      tx.sign(index, privKey)
-    })
+  }).then(function(rawTx) {
+    return Q.nfcall(transformTx, rawTx, targetKind, opts)
 
-    var ccTx = new cclib.Transaction()
-    ccTx.version = tx.version
-    ccTx.locktime = tx.locktime
-    ccTx.ins = tx.ins
-    ccTx.outs = tx.outs
+  }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
+}
 
-    return ccTx
+/**
+ * @callback transformRawTx~callback
+ * @param {?Error} error
+ * @param {Transaction} tx
+ */
+
+/**
+ * Takes a RawTx rawTx and returns a transaction
+ *  of type targetKind which is one of (signed)
+ *
+ * @param {RawTx} rawTx
+ * @param {string} targetKind
+ * @param {Object} opts
+ * @param {transformRawTx~callback} cb
+ */
+function transformRawTx(rawTx, targetKind, opts, cb) {
+  Q.fcall(function() {
+    if (['signed'].indexOf(targetKind) === -1)
+      throw new Error('do not know how to transform rawTx')
+
+    return Q.ninvoke(rawTx, 'sign', opts.wallet, opts.seed)
+
+  }).then(function() {
+    return rawTx.toTransaction()
 
   }).then(function(signedTx) {
-    return Q.nfcall(transformTx, signedTx, targetKind, seed)
+    return Q.nfcall(transformTx, signedTx, targetKind, opts)
 
   }).done(function(targetTx) { cb(null, targetTx) }, function(error) { cb(error) })
 }
@@ -155,18 +170,20 @@ function transformComposedTx(composedTx, targetKind, seed, cb) {
 /**
  * Transform a transaction tx into another type of transaction defined by targetKind.
  *
- * AssetTx  -> OperationalTx -> ComposedTx -> Transaction
- * "simple" -> "operational" -> "composed" -> "signed"
+ * AssetTx  -> OperationalTx -> ComposedTx -> RawTx -> Transaction
+ * "simple" -> "operational" -> "composed" -> "raw" -> "signed"
  *
  * @param {(AssetTx|OperationalTx|ComposedTx)} tx
  * @param {string} targetKind
- * @param {(Buffer|string)} [seed] Required targetKind is signed
+ * @param {Object} [opts] Required if targetKind is (raw|signed)
+ * @param {(Buffer|string)} [opts.seed]
+ * @param {Wallet} [opts.wallet]
  * @param {TxTranformer~transformTx} cb
  */
-function transformTx(tx, targetKind, seed, cb) {
+function transformTx(tx, targetKind, opts, cb) {
   if (_.isUndefined(cb)) {
-    cb = seed
-    seed = undefined
+    cb = opts
+    opts = undefined
   }
 
   Q.fcall(function() {
@@ -175,13 +192,16 @@ function transformTx(tx, targetKind, seed, cb) {
       return tx
 
     if (currentKind === 'asset')
-      return Q.nfcall(transformAssetTx, tx, targetKind, seed)
+      return Q.nfcall(transformAssetTx, tx, targetKind, opts)
 
     if (currentKind === 'operational')
-      return Q.nfcall(transformOperationalTx, tx, targetKind, seed)
+      return Q.nfcall(transformOperationalTx, tx, targetKind, opts)
 
     if (currentKind === 'composed')
-      return Q.nfcall(transformComposedTx, tx, targetKind, seed)
+      return Q.nfcall(transformComposedTx, tx, targetKind, opts)
+
+    if (currentKind === 'raw')
+      return Q.nfcall(transformRawTx, tx, targetKind, opts)
 
     throw new Error('targetKind is not recognized')
 

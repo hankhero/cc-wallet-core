@@ -12,32 +12,32 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/fanatid/cc-wallet-core"
+    "url": "https://github.com/chromaway/cc-wallet-core"
   },
   "dependencies": {
     "bitcoinjs-lib": "1.0.2",
     "browser-request": "0.3.2",
-    "coloredcoinjs-lib": "git://github.com/fanatid/coloredcoinjs-lib.git#v0.0.2",
+    "coloredcoinjs-lib": "git://github.com/chromaway/coloredcoinjs-lib.git#v0.0.3",
     "lodash": "2.4.1",
     "lru-cache": "2.5.0",
     "q": "1.0.1",
     "querystring": "0.2.0",
-    "request": "2.40.0",
+    "request": "2.45.0",
     "socket.io-client": "1.1.0"
   },
   "devDependencies": {
-    "chai": "1.9.1",
-    "coveralls": "2.11.1",
+    "chai": "1.9.2",
+    "coveralls": "2.11.2",
     "grunt": "0.4.5",
-    "grunt-browserify": "2.1.4",
+    "grunt-browserify": "3.0.1",
     "grunt-contrib-clean": "0.6.0",
     "grunt-contrib-jshint": "0.10.0",
-    "grunt-contrib-uglify": "0.5.1",
+    "grunt-contrib-uglify": "0.6.0",
     "grunt-contrib-watch": "0.6.1",
-    "grunt-mocha-istanbul": "2.0.0",
-    "grunt-mocha-test": "0.11.0",
-    "mocha": "1.21.4",
-    "testling": "1.7.0"
+    "grunt-mocha-istanbul": "2.1.0",
+    "grunt-mocha-test": "0.12.0",
+    "mocha": "1.21.5",
+    "testling": "1.7.1"
   },
   "browser": {
     "request": "browser-request"
