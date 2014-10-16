@@ -1,6 +1,7 @@
 var inherits = require('util').inherits
 
 var _ = require('lodash')
+var bitcoin = require('coloredcoinjs-lib')
 
 var SyncStorage = require('../SyncStorage')
 
@@ -48,8 +49,15 @@ inherits(CoinStorage, SyncStorage)
 CoinStorage.prototype.add = function(rawCoin) {
   var records = this.getAll()
   records.forEach(function(record) {
-    if (record.txId === rawCoin.txId && record.outIndex === rawCoin.outIndex)
+    if (record.txId === rawCoin.txId && record.outIndex === rawCoin.outIndex) {
+      var script = bitcoin.Script.fromHex(record.script)
+      var isMultisig = bitcoin.scripts.isMultisigOutput(script)
+
+      if (isMultisig && record.address !== rawCoin.address)
+        return
+
       throw new Error('Same coin already exists')
+    }
   })
 
   records.push({

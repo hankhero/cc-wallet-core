@@ -1,8 +1,7 @@
-var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var Q = require('q')
-
 var cclib = require('coloredcoinjs-lib')
+var bitcoin = cclib.bitcoin
 
 var Coin = require('./Coin')
 
@@ -42,21 +41,23 @@ CoinManager.prototype.applyTx = function(tx, cb) {
 
     var promises = tx.outs.map(function(output, index) {
       var script = bitcoin.Script.fromBuffer(output.script.toBuffer())
-      var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
+      var outputAddresses = bitcoin.getAddressesFromOutputScript(script, self.wallet.getNetwork())
 
-      if (addresses.indexOf(address) === -1)
-        return
+      return Q.all(outputAddresses.map(function(address) {
+        if (addresses.indexOf(address) === -1)
+          return
 
-      self.storage.add({
-        txId: tx.getId(),
-        outIndex: index,
-        value: output.value,
-        script: output.script,
-        address: address
-      })
+        self.storage.add({
+          txId: tx.getId(),
+          outIndex: index,
+          value: output.value,
+          script: output.script.toHex(),
+          address: address
+        })
 
-      var coin = self.record2Coin(self.storage.get(tx.getId(), index))
-      return Q.ninvoke(coin, 'getMainColorValue')
+        var coin = self.record2Coin(self.storage.get(tx.getId(), index))
+        return Q.ninvoke(coin, 'getMainColorValue')
+      }))
     })
 
     return Q.all(promises)
