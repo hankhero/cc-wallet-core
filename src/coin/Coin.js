@@ -19,6 +19,16 @@ function Coin(coinManager, rawCoin) {
   this.address = rawCoin.address
 }
 
+Coin.prototype.toRawCoin = function () {
+    return {
+        txId: this.txId,
+        outIndex: this.outIndex,
+        value: this.value,
+        script: this.script,
+        address: this.address
+    };
+}
+
 /**
  * {@link CoinManager.isCoinSpent}
  */
