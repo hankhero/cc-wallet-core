@@ -1,8 +1,7 @@
 var expect = require('chai').expect
 
-var networks = bitcoin.networks
 var cclib = require('coloredcoinjs-lib')
-var bitcoin = cclib.bitcoin
+var networks = cclib.bitcoin.networks
 
 var address = require('../src/address')
 

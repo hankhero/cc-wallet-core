@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "browser-request": "0.3.2",
-    "coloredcoinjs-lib": "git://github.com/chromaway/coloredcoinjs-lib.git#v0.0.3",
+    "coloredcoinjs-lib": "git://github.com/chromaway/coloredcoinjs-lib.git#v0.0.4",
     "lodash": "2.4.1",
     "lru-cache": "2.5.0",
     "q": "1.0.1",

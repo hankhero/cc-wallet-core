@@ -1,44 +1,7 @@
 var _ = require('lodash')
 var Q = require('q')
-var cclib = require('coloredcoinjs-lib')
-var bitcoin = cclib.bitcoin
 
-
-/**
- * @param {bitcoinjs-lib.Script} script
- * @param {Object} network
- * @param {number} network.pubKeyHash
- * @param {number} network.scriptHash
- * @return {string[]}
- */
-function getAddressesFromOutputScript(script, network) {
-  var addresses = []
-
-  switch (bitcoin.scripts.classifyOutput(script)) {
-    case 'pubkeyhash':
-      addresses = [new bitcoin.Address(script.chunks[2], network.pubKeyHash)]
-      break
-
-    case 'pubkey':
-      addresses = [bitcoin.ECPubKey.fromBuffer(script.chunks[0]).getAddress(network)]
-      break
-
-    case 'multisig':
-      addresses = script.chunks.slice(1, -2).map(function(pubKey) {
-        return bitcoin.ECPubKey.fromBuffer(pubKey).getAddress(network)
-      })
-      break
-
-    case 'scripthash':
-      addresses = [new bitcoin.Address(script.chunks[1], network.scriptHash)]
-      break
-
-    default:
-      break
-  }
-
-  return addresses.map(function(addr) { return addr.toBase58Check() })
-}
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 
 
 /**
@@ -119,7 +82,7 @@ RawTx.prototype.sign = function(wallet, seed, cb) {
       })
 
     }).then(function() {
-      var addresses = getAddressesFromOutputScript(self.txb.prevOutScripts[index], wallet.getNetwork())
+      var addresses = bitcoin.getAddressesFromOutputScript(self.txb.prevOutScripts[index], wallet.getNetwork())
       addresses.forEach(function(address) {
         var privKey = addressManager.getPrivKeyByAddress(seed, address)
         self.txb.sign(index, privKey)

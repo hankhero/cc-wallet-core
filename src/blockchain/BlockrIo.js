@@ -1,6 +1,6 @@
 var inherits = require('util').inherits
 
-var cclib = require('coloredcoinjs-lib')
+var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
@@ -185,7 +185,7 @@ BlockrIo.prototype.getTx = function(txId, cb) {
     }
 
     return Q.ninvoke(self, 'request', '/api/v1/tx/raw/' + txId).then(function(response) {
-      return bitcoinjs-lib.Transaction.fromHex(response.tx.hex)
+      return bitcoin.Transaction.fromHex(response.tx.hex)
     })
 
   }).done(function(tx) { cb(null, tx) }, function(error) { cb(error) })
