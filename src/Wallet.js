@@ -355,6 +355,162 @@ Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
 }
 
 /**
+ * @callback Wallet~getHistory
+ * @param {?Error} error
+ * @param {HistoryEntry[]} history
+ */
+
+/**
+ * @param {AssetDefinition} [assetdef]
+ * @param {Wallet~getHistory} cb
+ */
+Wallet.prototype.getHistory = function(assetdef, cb) {
+  if (_.isUndefined(cb)) {
+    cb = assetdef
+    assetdef = null
+  }
+
+  Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
+    if (assetdef !== null) {
+      var assetId = assetdef.getId()
+      entries = entries.filter(function(entry) {
+        return entry.getTargets().some(function(assetTarget) {
+          var targetAssetId = assetTarget.getAsset().getId()
+          return targetAssetId === assetId
+        })
+      })
+    }
+
+    return entries
+
+  }).done(function(entries) { cb(null, entries) }, function(error) { cb(error) })
+}
+
+/**
+ * @typedef {Object} rawTarget
+ * @property {number} value Target value in satoshi
+ * @property {string} [address] Target address
+ */
+
+/**
+ * @callback Wallet~createTx
+ * @param {?Error} error
+ * @param {ComposedTx} tx
+ */
+
+/**
+ * @param {AssetDefinition} assetdef
+ * @param {rawTarget[]} rawTargets
+ * @param {Wallet~createTx} cb
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.createTx = function(assetdef, rawTargets, cb) {
+  var self = this
+  self.isInitializedCheck()
+
+  var assetTargets = rawTargets.map(function(rawTarget) {
+    // Todo: add multisig support
+    var script = bitcoin.Address.fromBase58Check(rawTarget.address).toOutputScript()
+    var assetValue = new asset.AssetValue(assetdef, rawTarget.value)
+    return new asset.AssetTarget(script.toBuffer(), assetValue)
+  })
+
+  var assetTx = new tx.AssetTx(self, assetTargets)
+  Q.nfcall(tx.transformTx, assetTx, 'composed')
+    .done(function(composedTx) { cb(null, composedTx) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~createIssuanceTx
+ * @param {?Error} error
+ * @param {ComposedTx} tx
+ */
+
+/**
+ * @param {string} moniker
+ * @param {string} pck
+ * @param {number} units
+ * @param {number} atoms
+ * @param {(Buffer|string)} seed
+ * @param {Wallet~createIssuanceTx} cb
+ * @throws {Error} If wallet not initialized
+ */
+Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seed, cb) {
+  this.isInitializedCheck()
+
+  var self = this
+
+  Q.fcall(function() {
+    var colorDefinitionCls = self.getColorDefinitionManager().getColorDefenitionClsForType(pck)
+    if (colorDefinitionCls === null)
+      throw new Error('color desc ' + pck + ' not recognized')
+
+    var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
+    if (addresses.length === 0)
+      addresses.push(self.getAddressManager().getNewAddress(seed, colorDefinitionCls))
+
+    var targetAddress = addresses[0].getAddress()
+    var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()
+    var colorValue = new cclib.ColorValue(self.getColorDefinitionManager().getGenesis(), units*atoms)
+    var colorTarget = new cclib.ColorTarget(targetScript.toBuffer(), colorValue)
+
+    var operationalTx = new tx.OperationalTx(self)
+    operationalTx.addTarget(colorTarget)
+
+    return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
+
+  }).done(function(composedTx) { cb(null, composedTx) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~transformTx
+ * @param {?Error} error
+ * @param {(RawTx|bitcoinjs-lib.Transaction)} tx
+ */
+
+/**
+ * @param {(ComposedTx|RawTx)} currentTx
+ * @param {string} targetKind
+ * @param {(Buffer|string)} [seed]
+ * @param {Wallet~transformTx} cb
+ * @throws {Error} If wallet not initialized or not currently seed
+ */
+Wallet.prototype.transformTx = function(currentTx, targetKind, seed, cb) {
+  if (_.isUndefined(cb)) {
+    cb = seed
+    seed = undefined
+  }
+
+  this.isInitializedCheck()
+
+  if (targetKind === 'signed')
+    this.getAddressManager().isCurrentSeedCheck(seed)
+
+  Q.nfcall(tx.transformTx, currentTx, targetKind, { wallet: this, seed: seed })
+    .done(function(newTx) { cb(null, newTx) }, function(error) { cb(error) })
+}
+
+/**
+ * @callback Wallet~sendTx
+ * @param {?Error} error
+ */
+
+/**
+ * @param {bitcoinjs-lib.Transaction} tx
+ * @param {Wallet~sendTx} cb
+ */
+Wallet.prototype.sendTx = function(tx, cb) {
+  var self = this
+
+  Q.ninvoke(self.getBlockchain(), 'sendTx', tx).then(function() {
+    var timezoneOffset = new Date().getTimezoneOffset() * 60
+    var timestamp = Math.round(Date.now()/1000) + timezoneOffset
+    return Q.ninvoke(self.getTxDb(), 'addUnconfirmedTx', { tx: tx, timestamp: timestamp })
+
+  }).done(function() { cb(null) }, function(error) { cb(error) })
+}
+
+/**
  * @typedef {Object} rawTarget
  * @property {string} address Target address
  * @property {number} value Target value in satoshi
@@ -374,6 +530,8 @@ Wallet.prototype.getUnconfirmedBalance = function(assetdef, cb) {
  * @throws {Error} If wallet not initialized or not currently seed
  */
 Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
+  console.warn("Wallet.prototype.sendCoins is deprecated. Use createTx, transformTx and sendTx instead.")
+
   this.isInitializedCheck()
   this.getAddressManager().isCurrentSeedCheck(seed)
 
@@ -409,38 +567,6 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
 }
 
 /**
- * @callback Wallet~getHistory
- * @param {?Error} error
- * @param {HistoryEntry[]} history
- */
-
-/**
- * @param {AssetDefinition} [assetdef]
- * @param {Wallet~getHistory} cb
- */
-Wallet.prototype.getHistory = function(assetdef, cb) {
-  if (_.isUndefined(cb)) {
-    cb = assetdef
-    assetdef = null
-  }
-
-  Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
-    if (assetdef !== null) {
-      var assetId = assetdef.getId()
-      entries = entries.filter(function(entry) {
-        return entry.getTargets().some(function(assetTarget) {
-          var targetAssetId = assetTarget.getAsset().getId()
-          return targetAssetId === assetId
-        })
-      })
-    }
-
-    return entries
-
-  }).done(function(entries) { cb(null, entries) }, function(error) { cb(error) })
-}
-
-/**
  * @callback Wallet~issueCoins
  * @param {?Error} error
  */
@@ -455,6 +581,8 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
  * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
+  console.warn("Wallet.prototype.issueCoins is deprecated. Use createIssuanceTx, transformTx and sendTx instead.")
+
   this.isInitializedCheck()
   this.getAddressManager().isCurrentSeedCheck(seed)
 

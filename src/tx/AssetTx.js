@@ -9,10 +9,12 @@ var OperationalTx = require('./OperationalTx')
  * Simple asset transaction, but now supports only 1 color in asset
  *
  * @param {Wallet} wallet
+ * @param {AssetTarget[]} [assetTargets]
  */
-function AssetTx(wallet) {
+function AssetTx(wallet, assetTargets) {
   this.wallet = wallet
   this.targets = []
+  this.addTargets(assetTargets || [])
 }
 
 /**

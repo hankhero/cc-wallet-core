@@ -5,7 +5,7 @@ var cclib = require('coloredcoinjs-lib')
 
 var AssetDefinition = require('../src/asset').AssetDefinition
 var coin = require('../src/coin')
-var Wallet = require('../src/index')
+var Wallet = require('../src/index').Wallet
 
 
 describe('Wallet', function() {
@@ -188,10 +188,17 @@ describe('Wallet', function() {
         var bitcoin = wallet.getAssetDefinitionByMoniker('bitcoin')
         var targets = [{ address: 'mo8Ni5kFSxcuEVXbfBaSaDzMiq1j4E6wUE', value: 10000 }]
 
-        wallet.sendCoins(seed, bitcoin, targets, function(error, txId) {
+        wallet.createTx(bitcoin, targets, function(error, tx) {
           expect(error).to.be.null
-          expect(txId).to.be.an('string').with.to.have.length(64)
-          done()
+
+          wallet.transformTx(tx, 'signed', seed, function(error, tx) {
+            expect(error).to.be.null
+
+            wallet.sendTx(tx, function(error) {
+              expect(error).to.be.null
+              done()
+            })
+          })
         })
       })
     })
@@ -240,9 +247,18 @@ describe('Wallet', function() {
       wallet.addAssetDefinition(seed, goldAsset)
       wallet.fullScanAllAddresses(function(error) {
         expect(error).to.be.null
-        wallet.issueCoins(seed, 'newEPOBC', 'epobc', 5, 10000, function(error) {
+
+        wallet.createIssuanceTx('newEPOBC', 'epobc', 5, 10000, seed, function(error, tx) {
           expect(error).to.be.null
-          done()
+
+          wallet.transformTx(tx, 'signed', seed, function(error, tx) {
+            expect(error).to.be.null
+
+            wallet.sendTx(tx, function(error) {
+              expect(error).to.be.null
+              done()
+            })
+          })
         })
       })
     })
