@@ -122,6 +122,9 @@ CoinQuery.prototype.getCoins = function(cb) {
     var coins = _.flatten(
       addresses.map(function(address) { return coinManager.getCoinsForAddress(address) }))
 
+    /** remove duplicate coins */
+    coins = _.uniq(coins, function(coin) { return coin.toString() })
+
     /** filter include/only spent coins */
     if (self.query.onlySpent)
       coins = coins.filter(function(coin) { return coin.isSpent() })

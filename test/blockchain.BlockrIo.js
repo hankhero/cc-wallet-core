@@ -8,6 +8,37 @@ var blockchain = require('../src/blockchain')
 describe('blockchain.BlockrIo', function() {
   var bs
 
+  function sendCoins(done) {
+    var hdnode = bitcoin.HDNode.fromSeedHex('00000000000000000000000000000000', bitcoin.networks.testnet)
+    // address is mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
+    var address = hdnode.pubKey.getAddress(bitcoin.networks.testnet).toBase58Check()
+
+    bs = new blockchain.BlockrIo({ testnet: true })
+    bs.getUTXO(address, function(error, response) {
+      expect(error).to.be.null
+      expect(response).to.be.instanceof(Array).with.to.have.length.least(1)
+      var totalValue = response.reduce(function(a, b) { return { value: a.value+b.value } }).value
+      expect(totalValue).to.be.at.least(10000)
+
+      // send totalValue minus 0.1 mBTC to mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
+      var txb = new bitcoin.TransactionBuilder()
+      response.forEach(function(unspent) {
+        txb.addInput(unspent.txId, unspent.outIndex)
+      })
+      txb.addOutput(address, totalValue - 10000)
+      response.forEach(function(unspent, index) {
+        txb.sign(index, hdnode.privKey)
+      })
+
+      var tx = txb.build()
+      bs.sendTx(tx, function(error, response) {
+        expect(error).to.be.null
+        expect(response).to.be.a('string').with.to.have.length(64)
+        done(response)
+      })
+    })
+  }
+
   beforeEach(function() {
     bs = new blockchain.BlockrIo()
   })
@@ -64,36 +95,6 @@ fff0e0420e7494d017f062f503253482fffffffff0100f2052a010000002321021aeaf2f8638a12\
       })
     })
   })
-
-  function sendCoins(done) {
-    var hdnode = bitcoin.HDNode.fromSeedHex('00000000000000000000000000000000', bitcoin.networks.testnet)
-    // address is mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
-    var address = hdnode.pubKey.getAddress(bitcoin.networks.testnet).toBase58Check()
-
-    bs = new blockchain.BlockrIo({ testnet: true })
-    bs.getUTXO(address, function(error, response) {
-      expect(error).to.be.null
-      expect(response).to.be.instanceof(Array).with.to.have.length.least(1)
-      var totalValue = response.reduce(function(a, b) { return { value: a.value+b.value } }).value
-      expect(totalValue).to.be.at.least(10000)
-
-      // send totalValue minus 0.1 mBTC to mhW9PYb5jsjpsS5x6dcLrZj7gPvw9mMb9c
-      var tx = new bitcoin.Transaction()
-      response.forEach(function(unspent) {
-        tx.addInput(unspent.txId, unspent.outIndex)
-      })
-      tx.addOutput(address, totalValue - 10000)
-      tx.ins.forEach(function(input, index) {
-        tx.sign(index, hdnode.privKey)
-      })
-
-      bs.sendTx(tx, function(error, response) {
-        expect(error).to.be.null
-        expect(response).to.be.a('string').with.to.have.length(64)
-        done(response)
-      })
-    })
-  }
 
   describe('getTxBlockHash', function() {
     it('return null for unconfirmed tx', function(done) {
