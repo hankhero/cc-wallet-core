@@ -170,6 +170,24 @@ AddressManager.prototype.getAllAddresses = function(definition) {
 }
 
 /**
+ * @param {string} address
+ * @return {bitcoinjs-lib.ECPubKey}
+ * @throws {Error} If not currenly seed or address not found
+ */
+AddressManager.prototype.getPubKeyByAddress = function(address) {
+  var record = this.storage.getAll().filter(function(record) {
+    var pubKey = ECPubKey.fromHex(record.pubKey)
+    var recordAddress = new Address(pubKey, this.network)
+    return address === recordAddress.getAddress()
+  }.bind(this))
+
+  if (record.length === 0)
+    throw new Error('Address not found')
+
+  return ECPubKey.fromHex(record.pubKey)
+}
+
+/**
  * @param {(Buffer|string)} seed
  * @param {string} address
  * @return {bitcoinjs-lib.ECKey}

@@ -1,6 +1,6 @@
 var expect = require('chai').expect
 
-var Wallet = require('../src/index')
+var Wallet = require('../src/index').Wallet
 
 
 describe('tx.TxFetcher', function() {
