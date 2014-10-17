@@ -20,6 +20,9 @@ var cclib = require('coloredcoinjs-lib')
  * @throws {Error} If data.unit not power of 10
  */
 function AssetDefinition(colorDefinitionManager, data) {
+  if (!data.colorDescs)
+      data.colorDescs = data.colorSchemes; // upgrade from old version
+
   assert(data.colorDescs.length === 1, 'Currently only single-color assets are supported')
 
   data.unit = _.isUndefined(data.unit) ? 1 : data.unit
