@@ -104,7 +104,7 @@ BlockchainBase.prototype.sendTx = function() {
  * @property {number} value Coin value in satoshi
  * @property {string} script
  * @property {string} address
- * @property {boolean} confirmed
+ * @property {number} confrimations
  */
 
 /**
