@@ -21,7 +21,7 @@ var cclib = require('coloredcoinjs-lib')
  */
 function AssetDefinition(colorDefinitionManager, data) {
   if (!data.colorDescs)
-      data.colorDescs = data.colorSchemes; // upgrade from old version
+    data.colorDescs = data.colorSchemes // upgrade from old version
 
   assert(data.colorDescs.length === 1, 'Currently only single-color assets are supported')
 

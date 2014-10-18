@@ -1,13 +1,18 @@
 /**
+ * @typedef {Object} RawCoin
+ * @property {string} txId
+ * @property {number} outIndex
+ * @property {number} value
+ * @property {string} script
+ * @property {string} address
+ */
+
+
+ /**
  * @class Coin
  *
  * @param {Wallet} coinManager
- * @param {Object} rawCoin
- * @param {string} rawCoin.txId
- * @param {number} rawCoin.outIndex
- * @param {number} rawCoin.value
- * @param {string} rawCoin.script
- * @param {string} rawCoin.address
+ * @param {RawCoin} rawCoin
  */
 function Coin(coinManager, rawCoin) {
   this.coinManager = coinManager
@@ -19,14 +24,17 @@ function Coin(coinManager, rawCoin) {
   this.address = rawCoin.address
 }
 
+/**
+ * @return {RawCoin}
+ */
 Coin.prototype.toRawCoin = function () {
-    return {
-        txId: this.txId,
-        outIndex: this.outIndex,
-        value: this.value,
-        script: this.script,
-        address: this.address
-    };
+  return {
+    txId: this.txId,
+    outIndex: this.outIndex,
+    value: this.value,
+    script: this.script,
+    address: this.address
+  }
 }
 
 /**
