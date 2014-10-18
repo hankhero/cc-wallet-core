@@ -238,7 +238,7 @@ BlockrIo.prototype.getBlockHeight = function(blockHash, cb) {
  * @param {string} blockHash
  * @param {BlockchainBase~getBlockTime} cb
  */
-BlockchainBase.prototype.getBlockTime = function(blockHash, cb) {
+BlockrIo.prototype.getBlockTime = function(blockHash, cb) {
   Q.ninvoke(this, 'request', '/api/v1/block/info/' + blockHash).then(function(response) {
     return Math.round(Date.parse(response.time_utc)/1000)
 
@@ -285,7 +285,6 @@ function parseAmount(amount) {
  * @property {number} value Coin value in satoshi
  * @property {string} script
  * @property {string} address
- * @property {boolean} confirmed
  * @property {number} confrimations
  */
 
