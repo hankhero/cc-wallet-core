@@ -10,7 +10,7 @@ var SyncStorage = require('../SyncStorage')
  * @param {number} account Always equal 0
  * @param {number} chain
  * @param {number} index
- * @param {string} pubKey bitcoinjs-lib.ECPubKey in hex format
+ * @param {string} pubKey Hex string
  */
 
 /**
@@ -33,6 +33,7 @@ inherits(AddressStorage, SyncStorage)
  * @param {number} data.chain
  * @param {number} data.index
  * @param {string} data.pubKey bitcoinjs-lib.ECPubKey in hex format
+ * @return {AddressStorageRecord}
  * @throw {Error} If account, chain, index or pubKey exists
  */
 AddressStorage.prototype.add = function(data) {
@@ -46,14 +47,17 @@ AddressStorage.prototype.add = function(data) {
       throw new Error('pubKey already exists')
   })
 
-  pubKeys.push({
+  var record = {
     account: 0,
     chain: data.chain,
     index: data.index,
     pubKey: data.pubKey
-  })
+  }
 
+  pubKeys.push(record)
   this.store.set(this.dbKey, pubKeys)
+
+  return record
 }
 
 /**

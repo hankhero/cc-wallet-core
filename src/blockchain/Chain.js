@@ -4,7 +4,6 @@ var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
-var qs = require('querystring')
 var request = require('request')
 
 var BlockchainBase = require('./BlockchainBase')
@@ -25,7 +24,7 @@ var BlockchainBase = require('./BlockchainBase')
  * @param {BaseTxDb} [opts.txDb] Get transactions from TxDb, optional
  */
 function Chain(opts) {
-    opts = _.extend({
+  opts = _.extend({
     testnet: false,
     apiKeyId: 'DEMO-4a5e1e4',
     requestTimeout: 5*1000,
@@ -90,7 +89,6 @@ Chain.prototype.request = function(path, data, cb) {
 
   /** make request */
   self.requestPathCache.set(path, true)
-  var host = self.isTestnet ? 'tbtc.blockr.io' : 'btc.blockr.io'
   var requestOpts = {
     method: data === null ? 'GET' : 'POST',
     uri: self.baseURL + path + '?api-key-id=' + self.apiKeyId,

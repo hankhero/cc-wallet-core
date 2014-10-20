@@ -124,12 +124,12 @@ AddressManager.prototype.isCurrentSeedCheck = function(seed) {
 /**
  * Get new address and save it to db
  *
- * @param {(Buffer|string)} seed
  * @param {(function|ColorDefinition|AssetDefinition)} definition
+ * @param {(Buffer|string)} seed
  * @return {Address}
  * @throws {Error} If not currently seed or unknow chain
  */
-AddressManager.prototype.getNewAddress = function(seed, definition) {
+AddressManager.prototype.getNewAddress = function(definition, seed) {
   this.isCurrentSeedCheck(seed)
 
   var chain = selectChain(definition)
@@ -143,13 +143,17 @@ AddressManager.prototype.getNewAddress = function(seed, definition) {
   var rootNode = this.HDNodeFromSeed(seed)
   var pubKey = derive(rootNode, 0, chain, newIndex).pubKey
 
-  this.storage.add({
+  var record = this.storage.add({
     chain: chain,
     index: newIndex,
     pubKey: pubKey.toHex()
   })
 
-  return new Address(pubKey, this.network)
+  var assetDefinition
+  if (definition instanceof AssetDefinition)
+    assetDefinition = definition
+
+  return new Address(this, record, this.network, assetDefinition)
 }
 
 /**
@@ -162,8 +166,12 @@ AddressManager.prototype.getNewAddress = function(seed, definition) {
 AddressManager.prototype.getAllAddresses = function(definition) {
   var chain = selectChain(definition)
 
+  var assetDefinition
+  if (definition instanceof AssetDefinition)
+    assetDefinition = definition
+
   var addresses = this.storage.getAll(chain).map(function(record) {
-    return new Address(ECPubKey.fromHex(record.pubKey), this.network)
+    return new Address(this, record, this.network, assetDefinition)
   }.bind(this))
 
   return addresses
@@ -171,42 +179,38 @@ AddressManager.prototype.getAllAddresses = function(definition) {
 
 /**
  * @param {string} address
- * @return {bitcoinjs-lib.ECPubKey}
- * @throws {Error} If not currenly seed or address not found
+ * @return {?bitcoinjs-lib.ECPubKey}
  */
 AddressManager.prototype.getPubKeyByAddress = function(address) {
-  var record = this.storage.getAll().filter(function(record) {
-    var pubKey = ECPubKey.fromHex(record.pubKey)
-    var recordAddress = new Address(pubKey, this.network)
-    return address === recordAddress.getAddress()
+  var records = this.storage.getAll().filter(function(record) {
+    var recordAddress = new Address(this, record, this.network).getAddress()
+    return recordAddress === address
   }.bind(this))
 
-  if (record.length === 0)
-    throw new Error('Address not found')
+  if (records.length === 0)
+    return null
 
-  return ECPubKey.fromHex(record.pubKey)
+  return ECPubKey.fromHex(records[0].pubKey)
 }
 
 /**
- * @param {(Buffer|string)} seed
  * @param {string} address
- * @return {bitcoinjs-lib.ECKey}
- * @throws {Error} If not currently seed or address not found
+ * @param {(Buffer|string)} seed
+ * @return {?bitcoinjs-lib.ECKey}
  */
-AddressManager.prototype.getPrivKeyByAddress = function(seed, address) {
+AddressManager.prototype.getPrivKeyByAddress = function(address, seed) {
   this.isCurrentSeedCheck(seed)
 
-  var record = this.storage.getAll().filter(function(record) {
-    var recordAddress = new Address(ECPubKey.fromHex(record.pubKey), this.network)
-    return recordAddress.getAddress() === address
+  var records = this.storage.getAll().filter(function(record) {
+    var recordAddress = new Address(this, record, this.network).getAddress()
+    return recordAddress === address
   }.bind(this))
 
-  if (record.length === 0)
-    throw new Error('Address not found')
+  if (records.length === 0)
+    return null
 
   var rootNode = this.HDNodeFromSeed(seed)
-  var node = derive(rootNode, record[0].account, record[0].chain, record[0].index)
-
+  var node = derive(rootNode, records[0].account, records[0].chain, records[0].index)
   return node.privKey
 }
 

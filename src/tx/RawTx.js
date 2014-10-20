@@ -84,8 +84,9 @@ RawTx.prototype.sign = function(wallet, seed, cb) {
     }).then(function() {
       var addresses = bitcoin.getAddressesFromOutputScript(self.txb.prevOutScripts[index], wallet.getNetwork())
       addresses.forEach(function(address) {
-        var privKey = addressManager.getPrivKeyByAddress(seed, address)
-        self.txb.sign(index, privKey)
+        var privKey = addressManager.getPrivKeyByAddress(address, seed)
+        if (privKey !== null)
+          self.txb.sign(index, privKey)
       })
 
     })

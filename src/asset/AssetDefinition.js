@@ -46,13 +46,6 @@ AssetDefinition.prototype.getData = function() {
 }
 
 /**
- * @return {string}
- */
-AssetDefinition.prototype.getId = function() {
-  return this.colorSet.getColorHash()
-}
-
-/**
  * @return {string[]}
  */
 AssetDefinition.prototype.getMonikers = function() {
@@ -64,6 +57,20 @@ AssetDefinition.prototype.getMonikers = function() {
  */
 AssetDefinition.prototype.getColorSet = function() {
   return this.colorSet
+}
+
+/**
+ * @return {string}
+ */
+AssetDefinition.prototype.getId = function() {
+  return this.getColorSet().getColorHash()
+}
+
+/**
+ * @return {ColorDefinition[]}
+ */
+AssetDefinition.prototype.getColorDefinitions = function() {
+  return this.getColorSet().getColorDefinitions()
 }
 
 /**

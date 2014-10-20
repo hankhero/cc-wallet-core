@@ -101,7 +101,7 @@ Wallet.prototype.initialize = function(seed) {
   var addressManager = this.getAddressManager()
   this.getAssetDefinitionManager().getAllAssets().forEach(function(assetdef) {
     if (addressManager.getAllAddresses(assetdef).length === 0)
-      addressManager.getNewAddress(seed, assetdef)
+      addressManager.getNewAddress(assetdef, seed)
   })
 
   this.config.set('initialized', true)
@@ -174,11 +174,12 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 Wallet.prototype.getNewAddress = function(seed, assetdef, asColorAddress) {
   this.isInitializedCheck()
 
-  var address = this.getAddressManager().getNewAddress(seed, assetdef).getAddress()
-  if (asColorAddress === true)
-    address = assetdef.getId() + '@' + address
+  var address = this.getAddressManager().getNewAddress(assetdef, seed)
 
-  return address
+  if (asColorAddress)
+    return address.getColorAddress()
+
+  return address.getAddress()
 }
 
 /**
@@ -193,14 +194,11 @@ Wallet.prototype.getAllAddresses = function(assetdef, asColorAddress) {
   this.isInitializedCheck()
 
   var addresses = this.getAddressManager().getAllAddresses(assetdef)
-  addresses = addresses.map(function(address) { return address.getAddress() })
 
-  if (asColorAddress === true) {
-    var assetId = assetdef.getId()
-    addresses = addresses.map(function(address) { return assetId + '@' + address })
-  }
+  if (asColorAddress)
+    return addresses.map(function(address) { return address.getColorAddress() })
 
-  return addresses
+  return addresses.map(function(address) { return address.getAddress() })
 }
 
 /**
@@ -222,42 +220,17 @@ Wallet.prototype.getSomeAddress = function(assetdef, asColorAddress) {
 }
 
 /**
- * @param {AssetDefinition} assetdef
- * @param {string} address
- * @return {string}
+ * {@link Address.getBitcoinAddress}
  */
-Wallet.prototype.getBitcoinAddress = function (assetdef, address) {
-  /** Check colorId, except bitcoin */
-  var colordefs = assetdef.getColorSet().getColorDefinitions()
-  var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored'
-  if (!isBitcoinAsset) {
-    if (assetdef.getId() !== address.split('@')[0])
-      return null
-    return address.split('@')[1]
-  }
-
-  return address
+Wallet.prototype.getBitcoinAddress = function(assetdef, colorAddress) {
+  return address.Address.getBitcoinAddress(assetdef, colorAddress)
 }
 
 /**
- * @param {AssetDefinition} assetdef
- * @param {string} address
- * @return {boolean}
+ * {@link Address.checkAddress}
  */
-Wallet.prototype.checkAddress = function(assetdef, address) {
-  address = this.getBitcoinAddress(assetdef, address)
-  if (address === null)
-    return false
-
-  /** Check bitcoin address */
-  try {
-    var isValid = bitcoin.Address.fromBase58Check(address).version === this.getNetwork().pubKeyHash
-    return isValid
-
-  } catch (e) {
-    return false
-
-  }
+Wallet.prototype.checkAddress = function(assetdef, checkedAddress) {
+  return address.Address.checkColorAddress(assetdef, checkedAddress)
 }
 
 /**
@@ -447,7 +420,7 @@ Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seed, c
 
     var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
     if (addresses.length === 0)
-      addresses.push(self.getAddressManager().getNewAddress(seed, colorDefinitionCls))
+      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seed))
 
     var targetAddress = addresses[0].getAddress()
     var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()
@@ -595,7 +568,7 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
 
     var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
     if (addresses.length === 0)
-      addresses.push(self.getAddressManager().getNewAddress(seed, colorDefinitionCls))
+      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seed))
 
     var targetAddress = addresses[0].getAddress()
     var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()

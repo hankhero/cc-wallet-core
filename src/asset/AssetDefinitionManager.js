@@ -33,8 +33,16 @@ function AssetDefinitionManager(cdManager, storage) {
 AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
   //TODO: this is a hack, need deep comparison
   var assetdef = this.getByMoniker(data.monikers[0])
-  if (assetdef)
+  if (assetdef !== null)
     return assetdef
+
+/*
+  var assetdefs = _.filter(data.monikers.map(this.getByMoniker.bind(this)))
+  if (assetdefs.length > 1)
+    throw new Error('Can\'t resolve by moniker')
+  if (assetdefs.length > 0)
+    return assetdefs[0]
+*/
 
   assetdef = new AssetDefinition(this.cdManager, data)
 
