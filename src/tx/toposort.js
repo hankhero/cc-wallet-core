@@ -1,5 +1,7 @@
 var _ = require('lodash')
 
+var verify = require('../verify')
+
 
 /**
  * Sort transactions (sorted by height) in topological order
@@ -8,6 +10,9 @@ var _ = require('lodash')
  * @return {bitcoinjs-lib.Transaction[]}
  */
 function toposort(transactions) {
+  verify.array(transactions)
+  transactions.forEach(verify.Transaction)
+
   var transactionsIds = _.zipObject(transactions.map(function(tx) { return [tx.getId(), tx] }))
   var result = []
   var resultIds = []

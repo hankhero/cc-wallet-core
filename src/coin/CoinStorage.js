@@ -4,6 +4,7 @@ var _ = require('lodash')
 var bitcoin = require('coloredcoinjs-lib')
 
 var SyncStorage = require('../SyncStorage')
+var verify = require('../verify')
 
 
 /**
@@ -38,15 +39,12 @@ function CoinStorage() {
 inherits(CoinStorage, SyncStorage)
 
 /**
- * @param {Object} rawCoin
- * @param {string} rawCoin.txId
- * @param {number} rawCoin.outIndex
- * @param {number} rawCoin.value
- * @param {string} rawCoin.script
- * @param {string} rawCoin.address
+ * @param {CoinStorageRecord} rawCoin
  * @throws {Error} If coin already exists
  */
 CoinStorage.prototype.add = function(rawCoin) {
+  verify.rawCoin(rawCoin)
+
   var records = this.getAll()
   records.forEach(function(record) {
     if (record.txId === rawCoin.txId && record.outIndex === rawCoin.outIndex) {
@@ -77,6 +75,9 @@ CoinStorage.prototype.add = function(rawCoin) {
  * @return {?CoinStorageRecord}
  */
 CoinStorage.prototype.get = function(txId, outIndex) {
+  verify.txId(txId)
+  verify.number(outIndex)
+
   var records = this.getAll().filter(function(record) {
     return record.txId === txId && record.outIndex === outIndex
   })
@@ -92,6 +93,8 @@ CoinStorage.prototype.get = function(txId, outIndex) {
  * @return {CoinStorageRecord[]}
  */
 CoinStorage.prototype.getForAddress = function(address) {
+  verify.string(address)
+
   var records = this.getAll().filter(function(record) {
     return record.address === address
   })
@@ -112,6 +115,9 @@ CoinStorage.prototype.getAll = function() {
  * @param {number} outIndex
  */
 CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
+  verify.txId(txId)
+  verify.number(outIndex)
+
   var spends = this.store.get(this.spendsDbKey) || {}
   var txSpends = spends[txId] || []
 
@@ -128,6 +134,9 @@ CoinStorage.prototype.markCoinAsSpend = function(txId, outIndex) {
  * @return {boolean}
  */
 CoinStorage.prototype.isSpent = function(txId, outIndex) {
+  verify.txId(txId)
+  verify.number(outIndex)
+
   var spends = this.store.get(this.spendsDbKey) || {}
   var txSpends = spends[txId] || []
   return txSpends.indexOf(outIndex) !== -1

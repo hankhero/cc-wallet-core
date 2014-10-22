@@ -4,6 +4,7 @@ var cclib = require('coloredcoinjs-lib')
 var bitcoin = cclib.bitcoin
 
 var Coin = require('./Coin')
+var verify = require('../verify')
 
 
 /**
@@ -13,6 +14,9 @@ var Coin = require('./Coin')
  * @param {CoinStorage} storage
  */
 function CoinManager(wallet, storage) {
+  verify.Wallet(wallet)
+  verify.CoinStorage(storage)
+
   this.wallet = wallet
   this.storage = storage
 }
@@ -27,6 +31,9 @@ function CoinManager(wallet, storage) {
  * @param {CoinManager~applyTx} cb
  */
 CoinManager.prototype.applyTx = function(tx, cb) {
+  verify.Transaction(tx)
+  verify.function(cb)
+
   var self = this
 
   return Q.fcall(function() {
@@ -70,6 +77,8 @@ CoinManager.prototype.applyTx = function(tx, cb) {
  * @return {Coin}
  */
 CoinManager.prototype.record2Coin = function(record) {
+  verify.rawCoin(record)
+
   var coin = new Coin(this, {
     txId: record.txId,
     outIndex: record.outIndex,
@@ -86,6 +95,8 @@ CoinManager.prototype.record2Coin = function(record) {
  * @return {Coin[]}
  */
 CoinManager.prototype.getCoinsForAddress = function(address) {
+  verify.string(address)
+
   var records = this.storage.getForAddress(address)
   return records.map(this.record2Coin.bind(this))
 }
@@ -95,6 +106,8 @@ CoinManager.prototype.getCoinsForAddress = function(address) {
  * @return {boolean}
  */
 CoinManager.prototype.isCoinSpent = function(coin) {
+  verify.Coin(coin)
+
   return this.storage.isSpent(coin.txId, coin.outIndex)
 }
 
@@ -109,6 +122,9 @@ CoinManager.prototype.isCoinSpent = function(coin) {
  * @param {CoinManager~isConfirmed} cb
  */
 CoinManager.prototype.isCoinConfirmed = function(coin, cb) {
+  verify.Coin(coin)
+  verify.function(cb)
+
   Q.ninvoke(this.wallet.getTxDb(), 'isTxConfirmed', coin.txId)
   .done(function(isConfirmed) { cb(null, isConfirmed) }, function(error) { cb(error) })
 }
@@ -125,6 +141,10 @@ CoinManager.prototype.isCoinConfirmed = function(coin, cb) {
  * @param {CoinManager~getCoinColorValue} cb
  */
 CoinManager.prototype.getCoinColorValue = function(coin, colorDefinition, cb) {
+  verify.Coin(coin)
+  verify.ColorDefinition(colorDefinition)
+  verify.function(cb)
+
   var bs = this.wallet.getBlockchain()
   this.wallet.getColorData().getColorValue(coin.txId, coin.outIndex, colorDefinition, bs.getTx.bind(bs), cb)
 }
@@ -138,9 +158,13 @@ CoinManager.prototype.getCoinColorValue = function(coin, colorDefinition, cb) {
 /**
  * Get one ColorValue or error if more than one
  *
+ * @param {Coin} coin
  * @param {CoinManager~getMainColorValue} cb
  */
 CoinManager.prototype.getMainCoinColorValue = function(coin, cb) {
+  verify.Coin(coin)
+  verify.function(cb)
+
   var cdManager = this.wallet.getColorDefinitionManager()
 
   Q.fcall(function() {
@@ -165,5 +189,6 @@ CoinManager.prototype.getMainCoinColorValue = function(coin, cb) {
 
   }).done(function(coinColorValue) { cb(null, coinColorValue) }, function(error) { cb(error) })
 }
+
 
 module.exports = CoinManager

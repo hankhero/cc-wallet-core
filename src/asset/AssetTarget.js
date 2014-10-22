@@ -1,12 +1,18 @@
+var verify = require('../verify')
+
+
 /**
  * @class AssetTarget
  *
  * As ColorTarget, just for asset
  *
- * @param {Buffer} address
+ * @param {string} script
  * @param {AssetValue} assetValue
  */
 function AssetTarget(script, assetValue) {
+  verify.hexString(script)
+  verify.AssetValue(assetValue)
+
   this.script = script
   this.assetValue = assetValue
 }

@@ -1,9 +1,7 @@
-var assert = require('assert')
-
 var _ = require('lodash')
 var Q = require('q')
 
-var Coin = require('./Coin')
+var verify = require('../verify')
 
 
 /**
@@ -12,19 +10,13 @@ var Coin = require('./Coin')
  * @param {Coin[]}
  */
 function CoinList(coins) {
-  assert(_.isArray(coins), 'Expected Array coins, got ' + coins)
-  coins.forEach(function(coin) {
-    assert(coin instanceof Coin, 'Expected Array of Coin coins, got ' + coins)
-  })
+  verify.array(coins)
+  coins.forEach(verify.Coin)
 
-  var self = this
+  this.coins = coins
+  this.coins.forEach(function(coin, index) { this[index] = coin }.bind(this))
 
-  self.coins = coins
-
-  self.length = self.coins.length
-  self.coins.forEach(function(coin, index) {
-    self[index] = coin
-  })
+  this.length = this.coins.length
 }
 
 /**
@@ -44,6 +36,8 @@ CoinList.prototype.getCoins = function() {
  * @param {CoinList~getTotalValue} cb
  */
 CoinList.prototype.getTotalValue = function(cb) {
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {

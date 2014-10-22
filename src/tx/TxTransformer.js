@@ -7,6 +7,7 @@ var AssetTx = require('./AssetTx')
 var OperationalTx = require('./OperationalTx')
 var ComposedTx = cclib.ComposedTx
 var RawTx = require('./RawTx')
+var verify = require('../verify')
 
 
 /**
@@ -54,6 +55,11 @@ function classifyTx(tx) {
  * @param {transformAssetTx~callback} cb
  */
 function transformAssetTx(assetTx, targetKind, opts, cb) {
+  verify.AssetTx(assetTx)
+  verify.string(targetKind)
+  verify.object(opts)
+  verify.function(cb)
+
   Q.fcall(function() {
     if (['operational', 'composed', 'raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform assetTx')
@@ -83,6 +89,11 @@ function transformAssetTx(assetTx, targetKind, opts, cb) {
  * @param {transformOperationalTx~callback} cb
  */
 function transformOperationalTx(operationalTx, targetKind, opts, cb) {
+  verify.OperationalTx(operationalTx)
+  verify.string(targetKind)
+  verify.object(opts)
+  verify.function(cb)
+
   Q.fcall(function() {
     if (['composed', 'raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform operationalTx')
@@ -118,6 +129,11 @@ function transformOperationalTx(operationalTx, targetKind, opts, cb) {
  * @param {transformComposedTx~callback} cb
  */
 function transformComposedTx(composedTx, targetKind, opts, cb) {
+  verify.ComposedTx(composedTx)
+  verify.string(targetKind)
+  verify.object(opts)
+  verify.function(cb)
+
   Q.fcall(function() {
     if (['raw', 'signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform composedTx')
@@ -146,11 +162,18 @@ function transformComposedTx(composedTx, targetKind, opts, cb) {
  * @param {transformRawTx~callback} cb
  */
 function transformRawTx(rawTx, targetKind, opts, cb) {
+  verify.RawTx(rawTx)
+  verify.string(targetKind)
+  verify.object(opts)
+  verify.Wallet(opts.wallet)
+  verify.hexString(opts.seedHex)
+  verify.function(cb)
+
   Q.fcall(function() {
     if (['signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform rawTx')
 
-    return Q.ninvoke(rawTx, 'sign', opts.wallet, opts.seed)
+    return Q.ninvoke(rawTx, 'sign', opts.wallet, opts.seedHex)
 
   }).then(function() {
     return rawTx.toTransaction()
@@ -175,8 +198,8 @@ function transformRawTx(rawTx, targetKind, opts, cb) {
  *
  * @param {(AssetTx|OperationalTx|ComposedTx)} tx
  * @param {string} targetKind
- * @param {Object} [opts] Required if targetKind is (raw|signed)
- * @param {(Buffer|string)} [opts.seed]
+ * @param {Object} [opts] Required if targetKind is signed
+ * @param {string} [opts.seedHex]
  * @param {Wallet} [opts.wallet]
  * @param {TxTranformer~transformTx} cb
  */
@@ -185,6 +208,13 @@ function transformTx(tx, targetKind, opts, cb) {
     cb = opts
     opts = undefined
   }
+
+  if (_.isUndefined(opts))
+    opts = {}
+
+  verify.string(targetKind)
+  verify.object(opts)
+  verify.function(cb)
 
   Q.fcall(function() {
     var currentKind = classifyTx(tx)

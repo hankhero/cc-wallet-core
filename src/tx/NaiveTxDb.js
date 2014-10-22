@@ -3,6 +3,7 @@ var inherits = require('util').inherits
 var Q = require('q')
 
 var BaseTxDb = require('./BaseTxDb')
+var verify = require('../verify')
 
 
 /**
@@ -27,6 +28,9 @@ inherits(NaiveTxDb, BaseTxDb)
  * @param {NaiveTxDb~identifyTxStatus} cb
  */
 NaiveTxDb.prototype.identifyTxStatus = function(txId, cb) {
+  verify.txId(txId)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {

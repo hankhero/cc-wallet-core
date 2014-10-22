@@ -3,6 +3,8 @@ var Q = require('q')
 
 var bitcoin = require('coloredcoinjs-lib').bitcoin
 
+var verify = require('../verify')
+
 
 /**
  * @class RawTx
@@ -16,6 +18,8 @@ function RawTx() {
  * @return {RawTx}
  */
 RawTx.fromComposedTx = function(composedTx) {
+  verify.ComposedTx(composedTx)
+
   var rawTx = new RawTx()
 
   composedTx.getTxIns().forEach(function(txIn) {
@@ -23,7 +27,7 @@ RawTx.fromComposedTx = function(composedTx) {
   })
 
   composedTx.getTxOuts().forEach(function(txOut) {
-    rawTx.txb.addOutput(bitcoin.Script.fromBuffer(txOut.script), txOut.value)
+    rawTx.txb.addOutput(bitcoin.Script.fromHex(txOut.script), txOut.value)
   })
 
   return rawTx
@@ -34,6 +38,8 @@ RawTx.fromComposedTx = function(composedTx) {
  * @return {RawTx}
  */
 RawTx.fromTransaction = function(tx) {
+  verify.Transaction(tx)
+
   var rawTx = new RawTx()
   rawTx.txb = bitcoin.TransactionBuilder.fromTransaction(tx)
 
@@ -45,6 +51,8 @@ RawTx.fromTransaction = function(tx) {
  * @return {RawTx}
  */
 RawTx.fromHex = function(hex) {
+  verify.hexString(hex)
+
   var tx = bitcoin.Transaction.fromHex(hex)
   return RawTx.fromTransaction(tx)
 }
@@ -56,9 +64,13 @@ RawTx.fromHex = function(hex) {
 
 /**
  * @param {Wallet} opts.wallet
- * @param {(Buffer|seed)} opts.seed
+ * @param {string} opts.seedHex
  */
-RawTx.prototype.sign = function(wallet, seed, cb) {
+RawTx.prototype.sign = function(wallet, seedHex, cb) {
+  verify.Wallet(wallet)
+  verify.hexString(seedHex)
+  verify.function(cb)
+
   var self = this
   var addressManager = wallet.getAddressManager()
 
@@ -84,7 +96,7 @@ RawTx.prototype.sign = function(wallet, seed, cb) {
     }).then(function() {
       var addresses = bitcoin.getAddressesFromOutputScript(self.txb.prevOutScripts[index], wallet.getNetwork())
       addresses.forEach(function(address) {
-        var privKey = addressManager.getPrivKeyByAddress(address, seed)
+        var privKey = addressManager.getPrivKeyByAddress(address, seedHex)
         if (privKey !== null)
           self.txb.sign(index, privKey)
       })
@@ -101,6 +113,7 @@ RawTx.prototype.sign = function(wallet, seed, cb) {
  */
 RawTx.prototype.toTransaction = function(allowIncomplete) {
   allowIncomplete = allowIncomplete || false
+  verify.boolean(allowIncomplete)
 
   if (allowIncomplete)
     return this.txb.buildIncomplete()

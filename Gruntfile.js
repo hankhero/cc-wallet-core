@@ -24,7 +24,7 @@ module.exports = function(grunt) {
     jshint: {
       options: {
         asi: true,
-        camelcase: true,
+        //camelcase: true,
         freeze: true,
         immed: true,
         indent: 2,

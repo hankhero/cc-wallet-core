@@ -1,11 +1,10 @@
-var assert = require('assert')
-
 var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
+var verify = require('../verify')
+
 
 /**
- * AssetDefinition description
  * @typedef {Object} AssetDefinitionDesc
  * @param {string[]} monikers
  * @param {string[]} colorDescs
@@ -23,7 +22,16 @@ function AssetDefinition(colorDefinitionManager, data) {
   if (!data.colorDescs)
     data.colorDescs = data.colorSchemes // upgrade from old version
 
-  assert(data.colorDescs.length === 1, 'Currently only single-color assets are supported')
+  verify.ColorDefinitionManager(colorDefinitionManager)
+  verify.object(data)
+  verify.array(data.monikers)
+  data.monikers.forEach(verify.string)
+  verify.array(data.colorDescs)
+  data.colorDescs.forEach(verify.string)
+  if (data.unit) verify.number(data.unit)
+
+  if (data.colorDescs.length !== 1)
+    throw new Error('Currently only single-color assets are supported')
 
   data.unit = _.isUndefined(data.unit) ? 1 : data.unit
   if (Math.log(data.unit) / Math.LN10 % 1 !== 0)
@@ -78,7 +86,7 @@ AssetDefinition.prototype.getColorDefinitions = function() {
  * @return {number}
  */
 AssetDefinition.prototype.parseValue = function(portion) {
-  assert(_.isString(portion), 'Expected string portion, got ' + portion)
+  verify.string(portion)
 
   var items = portion.split('.')
 
@@ -100,7 +108,7 @@ AssetDefinition.prototype.parseValue = function(portion) {
  * @return {string}
  */
 AssetDefinition.prototype.formatValue = function(value) {
-  assert(_.isNumber(value), 'Expected number value, got ' + value)
+  verify.number(value)
 
   var coinString = (~~(value/this.unit)).toString()
   if (coinString === '0' && value < 0)

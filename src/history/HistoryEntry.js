@@ -1,3 +1,6 @@
+var verify = require('../verify')
+
+
 /**
  * @class HistoryEntry
  *
@@ -10,6 +13,16 @@
  * @param {number} data.entryType
  */
 function HistoryEntry(data) {
+  verify.object(data)
+  verify.Transaction(data.tx)
+  verify.number(data.blockHeight)
+  verify.number(data.timestamp)
+  verify.array(data.values)
+  data.values.forEach(verify.AssetValue)
+  verify.array(data.targets)
+  data.targets.forEach(verify.AssetTarget)
+  verify.number(data.entryType)
+
   this.txId = data.tx.getId()
   this.blockHeight = data.blockHeight
   this.timestamp = data.timestamp

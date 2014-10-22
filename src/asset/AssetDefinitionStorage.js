@@ -3,6 +3,7 @@ var inherits = require('util').inherits
 var _ = require('lodash')
 
 var SyncStorage = require('../SyncStorage')
+var verify = require('../verify')
 
 
 /**
@@ -29,11 +30,18 @@ function AssetDefinitionStorage() {
 inherits(AssetDefinitionStorage, SyncStorage)
 
 /**
- *
  * @param {AssetDefinitionRecord} data
  * @throws {?Error} If data.id or moniker from data.monikers already exists
  */
 AssetDefinitionStorage.prototype.add = function(data) {
+  verify.object(data)
+  verify.string(data.id)
+  verify.array(data.monikers)
+  data.monikers.forEach(verify.string)
+  verify.array(data.colorDescs)
+  data.colorDescs.forEach(verify.string)
+  verify.number(data.unit)
+
   var records = this.store.get(this.dbKey) || []
   records.forEach(function(record) {
     if (record.id === data.id)
@@ -63,6 +71,8 @@ AssetDefinitionStorage.prototype.add = function(data) {
  * @return {?AssetDefinitionRecord}
  */
 AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
+  verify.string(moniker)
+
   var records = this.getAll().filter(function(record) {
     return (record.monikers.indexOf(moniker) !== -1)
   })
@@ -78,6 +88,8 @@ AssetDefinitionStorage.prototype.getByMoniker = function(moniker) {
  * @return {?AssetDefinitionRecord}
  */
 AssetDefinitionStorage.prototype.getByDesc = function(desc) {
+  verify.string(desc)
+
   var records = this.getAll().filter(function(record) {
     return (record.colorDescs.indexOf(desc) !== -1)
   })

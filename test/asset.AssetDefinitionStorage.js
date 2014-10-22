@@ -10,7 +10,7 @@ describe('asset.AssetDefinitionStorage', function() {
   beforeEach(function() {
     storage = new AssetDefinitionStorage()
     storage.add({
-      ids: ['111', '123'],
+      id: '111',
       monikers: ['gold'],
       colorDescs: ['desc1', 'desc1'],
       unit: 10
@@ -28,7 +28,7 @@ describe('asset.AssetDefinitionStorage', function() {
 
   it('add throw error, id already exist', function() {
     var data = {
-      ids: ['113', '123'],
+      id: '111',
       monikers: ['silver'],
       colorDescs: [''],
       unit: 1
@@ -39,7 +39,7 @@ describe('asset.AssetDefinitionStorage', function() {
 
   it('add throw error, moniker already exist', function() {
     var data = {
-      ids: ['113'],
+      id: '113',
       monikers: ['gold'],
       colorDescs: [''],
       unit: 1

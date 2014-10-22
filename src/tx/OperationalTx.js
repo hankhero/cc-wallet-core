@@ -3,14 +3,18 @@ var util = require('util')
 var Q = require('q')
 var cclib = require('coloredcoinjs-lib')
 
+var verify = require('../verify')
+
+
 /**
  * @class OperationalTx
  * @extends cclib.OperationalTx
  *
  * @param {Wallet} wallet
- * @param {AssetDefinition} assetdef
  */
 function OperationalTx(wallet) {
+  verify.Wallet(wallet)
+
   cclib.OperationalTx.call(this)
 
   this.wallet = wallet
@@ -25,6 +29,7 @@ util.inherits(OperationalTx, cclib.OperationalTx)
  * @param {ColorTarget} target
  */
 OperationalTx.prototype.addTarget = function(target) {
+  verify.ColorTarget(target)
   this.targets.push(target)
 }
 
@@ -67,6 +72,8 @@ OperationalTx.prototype.isMonoColor = function() {
  * @return {ColorValue}
  */
 OperationalTx.prototype.getRequiredFee = function(txSize) {
+  verify.number(txSize)
+
   var baseFee = 10000
   var feeValue = Math.ceil((txSize * baseFee) / 1000)
 
@@ -93,10 +100,13 @@ OperationalTx.prototype.getDustThreshold = function() {
  * @param {OperationalTx~selectCoins} cb
  */
 OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
+  verify.ColorValue(colorValue)
+  if (feeEstimator !== null) verify.object(feeEstimator)
+  verify.function(cb)
+
   var self = this
 
   var colordef
-
   Q.fcall(function() {
     colordef = colorValue.getColorDefinition()
 
@@ -145,10 +155,13 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
 }
 
 /**
+ * @param {ColorDefinition}
  * @return {string}
  * @throws {Error} If targets not found or multi-color
  */
 OperationalTx.prototype.getChangeAddress = function(colordef) {
+  verify.ColorDefinition(colordef)
+
   if (!this.isMonoColor())
     throw new Error('multi-color not supported')
 

@@ -1,6 +1,8 @@
+var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
 var OperationalTx = require('./OperationalTx')
+var verify = require('../verify')
 
 
 /**
@@ -12,9 +14,16 @@ var OperationalTx = require('./OperationalTx')
  * @param {AssetTarget[]} [assetTargets]
  */
 function AssetTx(wallet, assetTargets) {
+  if (_.isUndefined(assetTargets))
+    assetTargets = []
+
+  verify.Wallet(wallet)
+  verify.array(assetTargets)
+  assetTargets.forEach(verify.AssetTarget)
+
   this.wallet = wallet
   this.targets = []
-  this.addTargets(assetTargets || [])
+  this.addTargets(assetTargets)
 }
 
 /**
@@ -23,6 +32,7 @@ function AssetTx(wallet, assetTargets) {
  * @param {AssetTarget} target
  */
 AssetTx.prototype.addTarget = function(target) {
+  verify.AssetTarget(target)
   this.targets.push(target)
 }
 

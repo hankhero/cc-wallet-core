@@ -3,6 +3,9 @@ var inherits = require('util').inherits
 var _ = require('lodash')
 var cclib = require('coloredcoinjs-lib')
 
+var verify = require('./verify')
+
+
 /*
  * @class SyncStorage
  * @extends coloredcoinjs-lib.SyncStorage
@@ -14,6 +17,8 @@ function SyncStorage(opts) {
   opts = _.extend({
     globalPrefix: 'cc_wallet_'
   }, opts)
+
+  verify.string(opts.globalPrefix)
 
   cclib.SyncStorage.call(this, opts)
 }

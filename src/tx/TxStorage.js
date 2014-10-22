@@ -3,6 +3,7 @@ var inherits = require('util').inherits
 var _ = require('lodash')
 
 var SyncStorage = require('../SyncStorage')
+var verify = require('../verify')
 
 
 /**
@@ -33,10 +34,15 @@ inherits(TxStorage, SyncStorage)
  * @param {string} txId
  * @param {string} rawTx
  * @param {number} status
- * @param {number} timestamp
+ * @param {number} [timestamp]
  * @throws {Error} If txId exists
  */
 TxStorage.prototype.addTx = function(txId, rawTx, status, timestamp) {
+  verify.txId(txId)
+  verify.hexString(rawTx)
+  verify.number(status)
+  if (timestamp) verify.number(timestamp)
+
   var records = this.getAll()
   if (!_.isUndefined(records[txId]))
     throw new Error('Same tx already exists')
@@ -58,6 +64,9 @@ TxStorage.prototype.addTx = function(txId, rawTx, status, timestamp) {
  * @throws {Error} If txId not exists
  */
 TxStorage.prototype.setTxStatus = function(txId, status) {
+  verify.txId(txId)
+  verify.number(status)
+
   var records = this.getAll()
 
   if (_.isUndefined(records[txId]))
@@ -74,6 +83,9 @@ TxStorage.prototype.setTxStatus = function(txId, status) {
  * @throws {Error} If txId not exists
  */
 TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
+  verify.txId(txId)
+  verify.number(blockHeight)
+
   var records = this.getAll()
 
   if (_.isUndefined(records[txId]))
@@ -90,6 +102,9 @@ TxStorage.prototype.setBlockHeight = function(txId, blockHeight) {
  * @throws {Error} If txId not exists
  */
 TxStorage.prototype.setTimestamp = function(txId, timestamp) {
+  verify.txId(txId)
+  verify.number(timestamp)
+
   var records = this.getAll()
 
   if (_.isUndefined(records[txId]))
@@ -104,6 +119,8 @@ TxStorage.prototype.setTimestamp = function(txId, timestamp) {
  * @return {?TxStorageRecord}
  */
 TxStorage.prototype.getByTxId = function(txId) {
+  verify.txId(txId)
+
   var record = this.getAll()[txId] || null
   return record
 }

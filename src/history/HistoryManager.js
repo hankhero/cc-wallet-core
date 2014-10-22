@@ -8,6 +8,7 @@ var AssetTarget = require('../asset').AssetTarget
 var Coin = require('../coin').Coin
 var toposort = require('../tx').toposort
 var HistoryEntry = require('./HistoryEntry')
+var verify = require('../verify')
 
 
 /**
@@ -16,6 +17,8 @@ var HistoryEntry = require('./HistoryEntry')
  * @param {Wallet} wallet
  */
 function HistoryManager(wallet) {
+  verify.Wallet(wallet)
+
   this.wallet = wallet
 }
 
@@ -29,6 +32,8 @@ function HistoryManager(wallet) {
  * @param {HistoryManager~getEntries} cb
  */
 HistoryManager.prototype.getEntries = function(cb) {
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -90,7 +95,7 @@ HistoryManager.prototype.getEntries = function(cb) {
             colorValues[cid] = cv
           else
             colorValues[cid] = colorValues[cid].plus(cv)
-          myColorTargets.push(new cclib.ColorTarget(coin.script, cv))
+          myColorTargets.push(new cclib.ColorTarget(coin.toRawCoin().script, cv))
         })
       })
 
@@ -100,18 +105,17 @@ HistoryManager.prototype.getEntries = function(cb) {
           if (!_.isUndefined(coins[tx.getId()+index]))
             return
 
-          var script = bitcoin.Script.fromBuffer(output.script.toBuffer())
-          var address = bitcoin.Address.fromOutputScript(script, self.wallet.getNetwork()).toBase58Check()
+          var address = bitcoin.Address.fromOutputScript(output.script, self.wallet.getNetwork()).toBase58Check()
           var coin = new Coin(self.wallet.getCoinManager(), {
             txId: tx.getId(),
             outIndex: index,
             value: output.value,
-            script: script,
+            script: output.script.toHex(),
             address: address
           })
 
           return Q.ninvoke(coin, 'getMainColorValue').then(function(cv) {
-            colorTargets.push(new cclib.ColorTarget(script.toBuffer(), cv))
+            colorTargets.push(new cclib.ColorTarget(output.script.toHex(), cv))
           })
         })
       })

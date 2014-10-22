@@ -1,13 +1,17 @@
 var AssetDefinition = require('./AssetDefinition')
+var verify = require('../verify')
 
 
 /**
  * @class AssetDefinitionManager
  *
- * @param {coloredcoinjs-lib.color.ColorDefinitionManager} cdManager
+ * @param {coloredcoinjs-lib.ColorDefinitionManager} cdManager
  * @param {AssetDefinitionStorage} storage
  */
 function AssetDefinitionManager(cdManager, storage) {
+  verify.ColorDefinitionManager(cdManager)
+  verify.AssetDefinitionStorage(storage)
+
   this.cdManager = cdManager
   this.storage = storage
 
@@ -61,6 +65,8 @@ AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
  * @return {?AssetDefinition}
  */
 AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
+  verify.string(moniker)
+
   var result = this.storage.getByMoniker(moniker)
 
   if (result !== null)
@@ -74,6 +80,8 @@ AssetDefinitionManager.prototype.getByMoniker = function(moniker) {
  * @return {?AssetDefinition}
  */
 AssetDefinitionManager.prototype.getByDesc = function(desc) {
+  verify.string(desc)
+
   var result = this.storage.getByDesc(desc)
 
   if (result !== null)

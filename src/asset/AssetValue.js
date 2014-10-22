@@ -1,3 +1,6 @@
+var verify = require('../verify')
+
+
 /**
  * @class AssetValue
  *
@@ -7,6 +10,9 @@
  * @param {number} value
  */
 function AssetValue(assetdef, value) {
+  verify.AssetDefinition(assetdef)
+  verify.number(value)
+
   this.assetdef = assetdef
   this.value = value
 }

@@ -3,6 +3,7 @@ var inherits = require('util').inherits
 var _ = require('lodash')
 
 var SyncStorage = require('../SyncStorage')
+var verify = require('../verify')
 
 
 /**
@@ -37,6 +38,11 @@ inherits(AddressStorage, SyncStorage)
  * @throw {Error} If account, chain, index or pubKey exists
  */
 AddressStorage.prototype.add = function(data) {
+  verify.object(data)
+  verify.number(data.chain)
+  verify.number(data.index)
+  verify.hexString(data.pubKey)
+
   var pubKeys = this.getAll()
 
   pubKeys.forEach(function(record) {
@@ -66,8 +72,11 @@ AddressStorage.prototype.add = function(data) {
  */
 AddressStorage.prototype.getAll = function(chain) {
   var pubKeys = this.store.get(this.dbKey) || []
-  if (!_.isUndefined(chain))
+
+  if (!_.isUndefined(chain)) {
+    verify.number(chain)
     pubKeys = pubKeys.filter(function(record) { return record.chain === chain })
+  }
 
   return pubKeys
 }

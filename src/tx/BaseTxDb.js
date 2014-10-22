@@ -3,6 +3,8 @@ var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
 
+var verify = require('../verify')
+
 
 var RecheckInterval = 60 * 1000
 
@@ -14,6 +16,9 @@ var RecheckInterval = 60 * 1000
  */
 // Todo: blockchain reorg and double-spending
 function BaseTxDb(wallet, storage) {
+  verify.Wallet(wallet)
+  verify.TxStorage(storage)
+
   this.wallet = wallet
   this.storage = storage
 
@@ -37,6 +42,8 @@ BaseTxDb.TxStatusInvalid = 3
  * @param {BaseTxDb~errorCallback} cb
  */
 BaseTxDb.prototype.addUnconfirmedTx = function(data, cb) {
+  verify.object(data)
+
   data = _.extend(data, { status: BaseTxDb.TxStatusUnconfirmed })
   this.addTx(data, cb)
 }
@@ -49,6 +56,12 @@ BaseTxDb.prototype.addUnconfirmedTx = function(data, cb) {
  * @param {BaseTxDb~errorCallback} cb
  */
 BaseTxDb.prototype.addTx = function(data, cb) {
+  verify.object(data)
+  verify.Transaction(data.tx)
+  if (data.status) verify.number(data.status)
+  if (data.timestamp) verify.number(data.timestamp)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -81,6 +94,8 @@ BaseTxDb.prototype.addTx = function(data, cb) {
  * @return {?bitcoinjs-lib.Transaction}
  */
 BaseTxDb.prototype.getTxById = function(txId) {
+  verify.txId(txId)
+
   var record = this.storage.getByTxId(txId)
   if (record === null)
     return null
@@ -93,6 +108,8 @@ BaseTxDb.prototype.getTxById = function(txId) {
  * @return {?number}
  */
 BaseTxDb.prototype.getBlockHeightByTxId = function(txId) {
+  verify.txId(txId)
+
   var record = this.storage.getByTxId(txId)
   if (record === null)
     return null
@@ -105,6 +122,8 @@ BaseTxDb.prototype.getBlockHeightByTxId = function(txId) {
  * @return {?number}
  */
 BaseTxDb.prototype.getTimestampByTxId = function(txId) {
+  verify.txId(txId)
+
   var record = this.storage.getByTxId(txId)
   if (record === null)
     return null
@@ -118,6 +137,10 @@ BaseTxDb.prototype.getTimestampByTxId = function(txId) {
  * @param {BaseTxDb~errorCallback} cb
  */
 BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
+  verify.txId(txId)
+  verify.number(status)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -145,6 +168,10 @@ BaseTxDb.prototype.maybeRecheckTxStatus = function(txId, status, cb) {
  * @param {BaseTxDb~errorCallback} cb
  */
 BaseTxDb.prototype.updateTxInfo = function(txId, status, cb) {
+  verify.txId(txId)
+  verify.number(status)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -191,6 +218,9 @@ BaseTxDb.prototype.updateTxInfo = function(txId, status, cb) {
  * @param {BaseTxDb~isTxConfirmed} cb
  */
 BaseTxDb.prototype.isTxConfirmed = function(txId, cb) {
+  verify.txId(txId)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -223,6 +253,9 @@ BaseTxDb.prototype.isTxConfirmed = function(txId, cb) {
  * @param {BaseTxDb~isTxValid} cb
  */
 BaseTxDb.prototype.isTxValid = function(txId, cb) {
+  verify.txId(txId)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {

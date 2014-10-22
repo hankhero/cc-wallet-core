@@ -2,6 +2,8 @@ var bitcoin = require('coloredcoinjs-lib').bitcoin
 var base58 = require('bs58')
 var bufferEqual = require('buffer-equal')
 
+var verify = require('../verify')
+
 
 /**
  * @class Address
@@ -12,6 +14,12 @@ var bufferEqual = require('buffer-equal')
  * @param {AssetDefinition} [assetDefinition]
  */
 function Address(addressManager, record, network, assetDefinition) {
+  verify.AddressManager(addressManager)
+  verify.object(record)
+  verify.hexString(record.pubKey)
+  verify.bitcoinNetwork(network)
+  if (assetDefinition) verify.AssetDefinition(assetDefinition)
+
   this.addressManager = addressManager
 
   this.pubKey = bitcoin.ECPubKey.fromHex(record.pubKey)
@@ -28,6 +36,9 @@ function Address(addressManager, record, network, assetDefinition) {
  * @return {?string}
  */
 Address.getBitcoinAddress = function(assetdef, address) {
+  verify.AssetDefinition(assetdef)
+  verify.string(address)
+
   var colordefs = assetdef.getColorDefinitions()
   var isBitcoinAsset = colordefs.length === 1 && colordefs[0].getColorType() === 'uncolored'
   if (isBitcoinAsset)
@@ -44,6 +55,8 @@ Address.getBitcoinAddress = function(assetdef, address) {
  * @return {boolean}
  */
 Address.checkAddress = function(address) {
+  verify.string(address)
+
   var buffer = new Buffer(base58.decode(address))
   // 1 byte version, 20 hash, 4 checksum
   if (buffer.length !== 25)
@@ -59,6 +72,9 @@ Address.checkAddress = function(address) {
  * @return {boolean}
  */
 Address.checkColorAddress = function(assetdef, address) {
+  verify.AssetDefinition(assetdef)
+  verify.string(address)
+
   address = Address.getBitcoinAddress(assetdef, address)
   if (address === null)
     return false
@@ -74,11 +90,12 @@ Address.prototype.getPubKey = function() {
 }
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @return {bitcoinjs-lib.ECKey}
  */
-Address.prototype.getPrivKey = function(seed) {
-  return this.addressManager.getPrivKeyByAddress(this.getAddress(), seed)
+Address.prototype.getPrivKey = function(seedHex) {
+  verify.hexString(seedHex)
+  return this.addressManager.getPrivKeyByAddress(this.getAddress(), seedHex)
 }
 
 /**

@@ -6,5 +6,7 @@ module.exports = {
   history: require('./history'),
   tx: require('./tx'),
 
+  verify: require('./verify'),
+
   Wallet: require('./Wallet')
 }

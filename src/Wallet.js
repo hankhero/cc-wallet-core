@@ -11,6 +11,8 @@ var ConfigStorage = require('./ConfigStorage')
 var history = require('./history')
 var tx = require('./tx')
 
+var verify = require('./verify')
+
 
 /**
  * @callback Wallet~errorCallback
@@ -30,6 +32,9 @@ function Wallet(opts) {
     blockchain: 'BlockrIo'
   }, opts)
 
+  verify.boolean(opts.testnet)
+  verify.string(opts.blockchain)
+
   this.network = opts.testnet ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
 
   this.config = new ConfigStorage()
@@ -47,6 +52,7 @@ function Wallet(opts) {
 
   this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
+  // Todo: change create to resolve
   if (opts.systemAssetDefinitions)
     opts.systemAssetDefinitions.forEach(function(sad) {
       this.adManager.createAssetDefinition(sad)
@@ -91,48 +97,50 @@ Wallet.prototype.isInitializedCheck = function() {
 }
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @throws {Error} If already initialized
  */
-Wallet.prototype.initialize = function(seed) {
+Wallet.prototype.initialize = function(seedHex) {
+  verify.hexString(seedHex)
+
   if (this.isInitialized())
     throw new Error('Wallet already initialized')
 
   var addressManager = this.getAddressManager()
   this.getAssetDefinitionManager().getAllAssets().forEach(function(assetdef) {
     if (addressManager.getAllAddresses(assetdef).length === 0)
-      addressManager.getNewAddress(assetdef, seed)
+      addressManager.getNewAddress(assetdef, seedHex)
   })
 
   this.config.set('initialized', true)
 }
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @throws {Error} If not initialized
  */
-Wallet.prototype.isCurrentSeed = function(seed) {
+Wallet.prototype.isCurrentSeed = function(seedHex) {
   this.isInitializedCheck()
-  return this.getAddressManager().isCurrentSeed(seed)
+  return this.getAddressManager().isCurrentSeed(seedHex)
 }
 
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @param {Object} data
  * @param {string[]} data.monikers
  * @param {string[]} data.colorDescs
  * @param {number} [data.unit=1]
  * @return {AssetDefinition}
- * @throws {Error} If asset already exists or not currently seed
+ * @throws {Error} If asset already exists or not currently seedHex
  */
-Wallet.prototype.addAssetDefinition = function(seed, data) {
+Wallet.prototype.addAssetDefinition = function(seedHex, data) {
   this.isInitializedCheck()
-  this.getAddressManager().isCurrentSeedCheck(seed)
+  this.getAddressManager().isCurrentSeedCheck(seedHex)
 
   var assetdef = this.getAssetDefinitionManager().createAssetDefinition(data)
   if (this.getSomeAddress(assetdef) === null)
-    this.getNewAddress(seed, assetdef)
+    this.getNewAddress(seedHex, assetdef)
 
   return assetdef
 }
@@ -165,16 +173,16 @@ Wallet.prototype.getAllAssetDefinitions = function() {
 /**
  * Create new address for given asset
  *
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @param {AssetDefinition} assetdef
  * @param {boolean} [asColorAddress=false]
  * @return {string}
- * @throws {Error} If wallet not initialized or not currently seed
+ * @throws {Error} If wallet not initialized or not currently seedHex
  */
-Wallet.prototype.getNewAddress = function(seed, assetdef, asColorAddress) {
+Wallet.prototype.getNewAddress = function(seedHex, assetdef, asColorAddress) {
   this.isInitializedCheck()
 
-  var address = this.getAddressManager().getNewAddress(assetdef, seed)
+  var address = this.getAddressManager().getNewAddress(assetdef, seedHex)
 
   if (asColorAddress)
     return address.getColorAddress()
@@ -271,6 +279,10 @@ Wallet.prototype.fullScanAllAddresses = function(cb) {
  * @param {function} cb
  */
 Wallet.prototype._getBalance = function(coinQuery, assetdef, cb) {
+  verify.CoinQuery(coinQuery)
+  verify.AssetDefinition(assetdef)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -343,6 +355,9 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
     assetdef = null
   }
 
+  if (assetdef !== null) verify.AssetDefinition(assetdef)
+  verify.function(cb)
+
   Q.ninvoke(this.historyManager, 'getEntries').then(function(entries) {
     if (assetdef !== null) {
       var assetId = assetdef.getId()
@@ -378,6 +393,9 @@ Wallet.prototype.getHistory = function(assetdef, cb) {
  * @throws {Error} If wallet not initialized
  */
 Wallet.prototype.createTx = function(assetdef, rawTargets, cb) {
+  verify.array(rawTargets)
+  verify.function(cb)
+
   var self = this
   self.isInitializedCheck()
 
@@ -385,7 +403,7 @@ Wallet.prototype.createTx = function(assetdef, rawTargets, cb) {
     // Todo: add multisig support
     var script = bitcoin.Address.fromBase58Check(rawTarget.address).toOutputScript()
     var assetValue = new asset.AssetValue(assetdef, rawTarget.value)
-    return new asset.AssetTarget(script.toBuffer(), assetValue)
+    return new asset.AssetTarget(script.toHex(), assetValue)
   })
 
   var assetTx = new tx.AssetTx(self, assetTargets)
@@ -404,11 +422,18 @@ Wallet.prototype.createTx = function(assetdef, rawTargets, cb) {
  * @param {string} pck
  * @param {number} units
  * @param {number} atoms
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @param {Wallet~createIssuanceTx} cb
  * @throws {Error} If wallet not initialized
  */
-Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seed, cb) {
+Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seedHex, cb) {
+  verify.string(moniker)
+  verify.string(pck)
+  verify.number(units)
+  verify.number(atoms)
+  verify.hexString(seedHex)
+  verify.function(cb)
+
   this.isInitializedCheck()
 
   var self = this
@@ -420,17 +445,19 @@ Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seed, c
 
     var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
     if (addresses.length === 0)
-      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seed))
+      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seedHex))
 
     var targetAddress = addresses[0].getAddress()
     var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()
     var colorValue = new cclib.ColorValue(self.getColorDefinitionManager().getGenesis(), units*atoms)
-    var colorTarget = new cclib.ColorTarget(targetScript.toBuffer(), colorValue)
+    var colorTarget = new cclib.ColorTarget(targetScript.toHex(), colorValue)
 
     var operationalTx = new tx.OperationalTx(self)
     operationalTx.addTarget(colorTarget)
 
     return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
+
+    // Todo: add to assetmanager
 
   }).done(function(composedTx) { cb(null, composedTx) }, function(error) { cb(error) })
 }
@@ -444,22 +471,24 @@ Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seed, c
 /**
  * @param {(ComposedTx|RawTx)} currentTx
  * @param {string} targetKind
- * @param {(Buffer|string)} [seed]
+ * @param {string} [seedHex]
  * @param {Wallet~transformTx} cb
- * @throws {Error} If wallet not initialized or not currently seed
+ * @throws {Error} If wallet not initialized or not currently seedHex
  */
-Wallet.prototype.transformTx = function(currentTx, targetKind, seed, cb) {
+Wallet.prototype.transformTx = function(currentTx, targetKind, seedHex, cb) {
   if (_.isUndefined(cb)) {
-    cb = seed
-    seed = undefined
+    cb = seedHex
+    seedHex = undefined
   }
+
+  verify.function(cb)
 
   this.isInitializedCheck()
 
   if (targetKind === 'signed')
-    this.getAddressManager().isCurrentSeedCheck(seed)
+    this.getAddressManager().isCurrentSeedCheck(seedHex)
 
-  Q.nfcall(tx.transformTx, currentTx, targetKind, { wallet: this, seed: seed })
+  Q.nfcall(tx.transformTx, currentTx, targetKind, { wallet: this, seedHex: seedHex })
     .done(function(newTx) { cb(null, newTx) }, function(error) { cb(error) })
 }
 
@@ -473,6 +502,8 @@ Wallet.prototype.transformTx = function(currentTx, targetKind, seed, cb) {
  * @param {Wallet~sendTx} cb
  */
 Wallet.prototype.sendTx = function(tx, cb) {
+  verify.function(cb)
+
   var self = this
 
   Q.ninvoke(self.getBlockchain(), 'sendTx', tx).then(function() {
@@ -496,17 +527,17 @@ Wallet.prototype.sendTx = function(tx, cb) {
  */
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @param {AssetDefinition} assetdef
  * @param {rawTarget[]} rawTargets
  * @param {Wallet~sendCoins} cb
- * @throws {Error} If wallet not initialized or not currently seed
+ * @throws {Error} If wallet not initialized or not currently seedHex
  */
-Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
+Wallet.prototype.sendCoins = function(seedHex, assetdef, rawTargets, cb) {
   console.warn("Wallet.prototype.sendCoins is deprecated. Use createTx, transformTx and sendTx instead.")
 
   this.isInitializedCheck()
-  this.getAddressManager().isCurrentSeedCheck(seed)
+  this.getAddressManager().isCurrentSeedCheck(seedHex)
 
   var self = this
 
@@ -514,13 +545,13 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
     var assetTargets = rawTargets.map(function(target) {
       var script = bitcoin.Address.fromBase58Check(target.address).toOutputScript()
       var assetValue = new asset.AssetValue(assetdef, target.value)
-      return new asset.AssetTarget(script.toBuffer(), assetValue)
+      return new asset.AssetTarget(script.toHex(), assetValue)
     })
 
     var assetTx = new tx.AssetTx(self)
     assetTx.addTargets(assetTargets)
 
-    return Q.nfcall(tx.transformTx, assetTx, 'signed', { wallet: self, seed: seed })
+    return Q.nfcall(tx.transformTx, assetTx, 'signed', { wallet: self, seedHex: seedHex })
 
   }).then(function(signedTx) {
     return Q.fcall(function() {
@@ -545,7 +576,7 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
  */
 
 /**
- * @param {(Buffer|string)} seed
+ * @param {string} seedHex
  * @param {string} moniker
  * @param {string} pck
  * @param {number} units
@@ -553,11 +584,11 @@ Wallet.prototype.sendCoins = function(seed, assetdef, rawTargets, cb) {
  * @param {Wallet~issueCoins} cb
  * @throws {Error} If wallet not initialized
  */
-Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
+Wallet.prototype.issueCoins = function(seedHex, moniker, pck, units, atoms, cb) {
   console.warn("Wallet.prototype.issueCoins is deprecated. Use createIssuanceTx, transformTx and sendTx instead.")
 
   this.isInitializedCheck()
-  this.getAddressManager().isCurrentSeedCheck(seed)
+  this.getAddressManager().isCurrentSeedCheck(seedHex)
 
   var self = this
 
@@ -568,12 +599,12 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
 
     var addresses = self.getAddressManager().getAllAddresses(colorDefinitionCls)
     if (addresses.length === 0)
-      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seed))
+      addresses.push(self.getAddressManager().getNewAddress(colorDefinitionCls, seedHex))
 
     var targetAddress = addresses[0].getAddress()
     var targetScript = bitcoin.Address.fromBase58Check(targetAddress).toOutputScript()
     var colorValue = new cclib.ColorValue(self.getColorDefinitionManager().getGenesis(), units*atoms)
-    var colorTarget = new cclib.ColorTarget(targetScript.toBuffer(), colorValue)
+    var colorTarget = new cclib.ColorTarget(targetScript.toHex(), colorValue)
 
     var operationalTx = new tx.OperationalTx(self)
     operationalTx.addTarget(colorTarget)
@@ -581,7 +612,7 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
     return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
 
   }).then(function(composedTx) {
-    return Q.nfcall(tx.transformTx, composedTx, 'signed', { wallet: self, seed: seed })
+    return Q.nfcall(tx.transformTx, composedTx, 'signed', { wallet: self, seedHex: seedHex })
 
   }).then(function(signedTx) {
     return Q.ninvoke(self.getBlockchain(), 'sendTx', signedTx).then(function() { return signedTx })
@@ -590,7 +621,7 @@ Wallet.prototype.issueCoins = function(seed, moniker, pck, units, atoms, cb) {
     return Q.ninvoke(self.getBlockchain(), 'getBlockCount').then(function(blockCount) {
       var colorDesc = [pck, signedTx.getId(), '0', blockCount-1].join(':')
 
-      self.addAssetDefinition(seed, {
+      self.addAssetDefinition(seedHex, {
         monikers: [moniker],
         colorDescs: [colorDesc],
         unit: atoms

@@ -1,20 +1,16 @@
+var verify = require('../verify')
+
+
 /**
- * @typedef {Object} RawCoin
- * @property {string} txId
- * @property {number} outIndex
- * @property {number} value
- * @property {string} script
- * @property {string} address
- */
-
-
- /**
  * @class Coin
  *
- * @param {Wallet} coinManager
- * @param {RawCoin} rawCoin
+ * @param {CoinManager} coinManager
+ * @param {CoinStorageRecord} rawCoin
  */
 function Coin(coinManager, rawCoin) {
+  verify.CoinManager(coinManager)
+  verify.rawCoin(rawCoin)
+
   this.coinManager = coinManager
 
   this.txId = rawCoin.txId
@@ -25,7 +21,7 @@ function Coin(coinManager, rawCoin) {
 }
 
 /**
- * @return {RawCoin}
+ * @return {CoinStorageRecord}
  */
 Coin.prototype.toRawCoin = function () {
   return {

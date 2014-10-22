@@ -2,6 +2,7 @@ var _ = require('lodash')
 var Q = require('q')
 
 var CoinList = require('./CoinList')
+var verify = require('../verify')
 
 
 /**
@@ -17,6 +18,8 @@ var CoinList = require('./CoinList')
  * @param {boolean} [query.onlyUnconfirmed=false]
  */
 function CoinQuery(wallet, query) {
+  verify.Wallet(wallet)
+
   this.wallet = wallet
 
   this.query = _.extend({
@@ -46,8 +49,11 @@ CoinQuery.prototype.clone = function() {
 CoinQuery.prototype.onlyColoredAs = function(colors) {
   if (!_.isArray(colors))
     colors = [colors]
-  colors = colors.map(function(cd) { return cd.getColorId() })
 
+  verify.array(colors)
+  colors.forEach(verify.ColorDefinition)
+
+  colors = colors.map(function(cd) { return cd.getColorId() })
   var query = _.extend(_.cloneDeep(this.query), { onlyColoredAs: colors })
   return new CoinQuery(this.wallet, query)
 }
@@ -59,6 +65,9 @@ CoinQuery.prototype.onlyColoredAs = function(colors) {
 CoinQuery.prototype.onlyAddresses = function(addresses) {
   if (!_.isArray(addresses))
     addresses = [addresses]
+
+  verify.array(addresses)
+  addresses.forEach(verify.string)
 
   var query = _.extend(_.cloneDeep(this.query), { onlyAddresses: addresses })
   return new CoinQuery(this.wallet, query)
@@ -108,6 +117,8 @@ CoinQuery.prototype.onlyUnconfirmed = function() {
  * @param {CoinQuery~getCoins} cb
  */
 CoinQuery.prototype.getCoins = function(cb) {
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {

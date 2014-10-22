@@ -2,6 +2,7 @@ var _ = require('lodash')
 var Q = require('q')
 
 var toposort = require('./toposort')
+var verify = require('../verify')
 
 
 /**
@@ -16,21 +17,28 @@ var toposort = require('./toposort')
  * @param {BlockchainBase} bs
  */
 function TxFetcher(txdb, bs) {
+  verify.BaseTxDb(txdb)
+  verify.BlockchainBase(bs)
+
   this.txdb = txdb
   this.bs = bs
 }
 
 /**
- * @typedef {Object} TxFetcher~_addRecords~records
+ * @typedef {Object} TxFetcher~_addRecords
  * @property {string} txId
  * @property {number} confirmations
  */
 
 /**
- * @param {TxFetcher~_addRecords~records[]} records
+ * @param {Object[]} records
+ * @param {TxFetcher~_addRecords[]} cb
  * @return {Q.Promise}
  */
 TxFetcher.prototype._addRecords = function(records) {
+  verify.array(records)
+  records.forEach(verify.object)
+
   var self = this
 
   return Q.fcall(function() {
@@ -66,6 +74,9 @@ TxFetcher.prototype._addRecords = function(records) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.scanAddressUnspent = function(address, cb) {
+  verify.address(address)
+  verify.function(cb)
+
   this.scanAddressesUnspent([address], cb)
 }
 
@@ -74,6 +85,10 @@ TxFetcher.prototype.scanAddressUnspent = function(address, cb) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.scanAddressesUnspent = function(addresses, cb) {
+  verify.array(addresses)
+  addresses.forEach(verify.string)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
@@ -91,6 +106,9 @@ TxFetcher.prototype.scanAddressesUnspent = function(addresses, cb) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.fullScanAddress = function(address, cb) {
+  verify.string(address)
+  verify.function(cb)
+
   this.fullScanAddresses([address], cb)
 }
 
@@ -99,6 +117,10 @@ TxFetcher.prototype.fullScanAddress = function(address, cb) {
  * @param {TxFetcher~errorCallback} cb
  */
 TxFetcher.prototype.fullScanAddresses = function(addresses, cb) {
+  verify.array(addresses)
+  addresses.forEach(verify.string)
+  verify.function(cb)
+
   var self = this
 
   Q.fcall(function() {
