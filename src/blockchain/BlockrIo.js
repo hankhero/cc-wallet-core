@@ -188,6 +188,12 @@ BlockrIo.prototype.getTx = function(txId, cb) {
       return bitcoin.Transaction.fromHex(response.tx.hex)
     })
 
+  }).then(function(tx) {
+    if (tx.getId() !== txId)
+      throw new Error('Received tx is incorrect')
+
+    return tx
+
   }).done(function(tx) { cb(null, tx) }, function(error) { cb(error) })
 }
 
