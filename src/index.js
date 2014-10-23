@@ -1,4 +1,6 @@
 module.exports = {
+  cclib: require('coloredcoinjs-lib'),
+
   address: require('./address'),
   asset: require('./asset'),
   blockchain: require('./blockchain'),
