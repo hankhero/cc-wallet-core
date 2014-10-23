@@ -116,6 +116,7 @@ TxStorage.prototype.setTimestamp = function(txId, timestamp) {
 }
 
 /**
+ * @param {string} txId
  * @return {?TxStorageRecord}
  */
 TxStorage.prototype.getByTxId = function(txId) {

@@ -249,6 +249,7 @@ Wallet.prototype._getAllAddresses = function () {
   var addresses =_.chain(this.getAllAssetDefinitions())
     .map(function(assetdef) { return this.getAllAddresses(assetdef) }, this)
     .flatten()
+    .uniq()
     .value()
 
   return addresses
