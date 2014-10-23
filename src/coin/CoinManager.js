@@ -175,7 +175,8 @@ CoinManager.prototype.getMainCoinColorValue = function(coin, cb) {
         if (coinColorValue !== null && colorValue !== null)
           throw new Error('Coin ' + coin + ' have more that one ColorValue')
 
-        coinColorValue = colorValue
+        if (coinColorValue === null)
+          coinColorValue = colorValue
       })
     })
 

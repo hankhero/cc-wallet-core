@@ -194,16 +194,6 @@ BlockrIo.prototype.getTx = function(txId, cb) {
 
     return tx
 
-  }).then(function(tx) {
-    if (_.isUndefined(self.txDb))
-      return tx
-
-    var savedTx = self.txDb.getTxById(txId)
-    if (savedTx !== null)
-      return tx
-
-    return Q.ninvoke(self.txDb, 'addTx', { tx: tx }).then(function() { return tx })
-
   }).done(function(tx) { cb(null, tx) }, function(error) { cb(error) })
 }
 
