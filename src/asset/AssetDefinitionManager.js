@@ -1,3 +1,5 @@
+var _ = require('lodash')
+
 var AssetDefinition = require('./AssetDefinition')
 var verify = require('../verify')
 
@@ -15,15 +17,11 @@ function AssetDefinitionManager(cdManager, storage) {
   this.cdManager = cdManager
   this.storage = storage
 
-  if (this.storage.getByMoniker('bitcoin') === null) {
-    var uncoloredColorDefinition = cdManager.getUncolored()
-
-    this.createAssetDefinition({
-      monikers: ['bitcoin'],
-      colorDescs: [uncoloredColorDefinition.getDesc()],
-      unit: 100000000
-    })
-  }
+  this.resolveAssetDefinition({
+    monikers: ['bitcoin'],
+    colorDescs: [cdManager.getUncolored().getDesc()],
+    unit: 100000000
+  })
 }
 
 /**
@@ -31,25 +29,31 @@ function AssetDefinitionManager(cdManager, storage) {
  * @param {string[]} data.monikers
  * @param {string[]} data.colorDescs
  * @param {number} [data.unit=1]
- * @return {AssetDefinition}
- * @throws {Error} If data.id or monikers in data.monikers exists
+ * @param {boolean} [autoAdd=true]
+ * @return {?AssetDefinition}
  */
-AssetDefinitionManager.prototype.createAssetDefinition = function(data) {
-  //TODO: this is a hack, need deep comparison
-  var assetdef = this.getByMoniker(data.monikers[0])
-  if (assetdef !== null)
-    return assetdef
+AssetDefinitionManager.prototype.resolveAssetDefinition = function(data, autoAdd) {
+  verify.object(data)
+  verify.array(data.monikers)
+  data.monikers.forEach(verify.string)
+  verify.array(data.colorDescs)
+  data.colorDescs.forEach(verify.string)
 
-/*
+  if (_.isUndefined(autoAdd)) autoAdd = true
+  verify.boolean(autoAdd)
+
   var assetdefs = _.filter(data.monikers.map(this.getByMoniker.bind(this)))
-  if (assetdefs.length > 1)
-    throw new Error('Can\'t resolve by moniker')
   if (assetdefs.length > 0)
     return assetdefs[0]
-*/
 
-  assetdef = new AssetDefinition(this.cdManager, data)
+  assetdefs = _.filter(data.colorDescs.map(this.getByDesc.bind(this)))
+  if (assetdefs.length > 0)
+    return assetdefs[0]
 
+  if (autoAdd === false)
+    return null
+
+  var assetdef = new AssetDefinition(this.cdManager, data)
   this.storage.add({
     id: assetdef.getId(),
     monikers: assetdef.getMonikers(),
@@ -94,9 +98,10 @@ AssetDefinitionManager.prototype.getByDesc = function(desc) {
  * @return {AssetDefinition[]}
  */
 AssetDefinitionManager.prototype.getAllAssets = function() {
+  var cdManager = this.cdManager
   var assetdefs = this.storage.getAll().map(function(record) {
-    return new AssetDefinition(this.cdManager, record)
-  }.bind(this))
+    return new AssetDefinition(cdManager, record)
+  })
 
   return assetdefs
 }

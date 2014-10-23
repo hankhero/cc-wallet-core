@@ -52,10 +52,9 @@ function Wallet(opts) {
 
   this.adStorage = new asset.AssetDefinitionStorage()
   this.adManager = new asset.AssetDefinitionManager(this.cdManager, this.adStorage)
-  // Todo: change create to resolve
   if (opts.systemAssetDefinitions)
     opts.systemAssetDefinitions.forEach(function(sad) {
-      this.adManager.createAssetDefinition(sad)
+      this.adManager.resolveAssetDefinition(sad)
     }.bind(this))
 
   this.coinStorage = new coin.CoinStorage()
@@ -138,7 +137,7 @@ Wallet.prototype.addAssetDefinition = function(seedHex, data) {
   this.isInitializedCheck()
   this.getAddressManager().isCurrentSeedCheck(seedHex)
 
-  var assetdef = this.getAssetDefinitionManager().createAssetDefinition(data)
+  var assetdef = this.getAssetDefinitionManager().resolveAssetDefinition(data)
   if (this.getSomeAddress(assetdef) === null)
     this.getNewAddress(seedHex, assetdef)
 
@@ -456,8 +455,6 @@ Wallet.prototype.createIssuanceTx = function(moniker, pck, units, atoms, seedHex
     operationalTx.addTarget(colorTarget)
 
     return Q.nfcall(colorDefinitionCls.composeGenesisTx, operationalTx)
-
-    // Todo: add to assetmanager
 
   }).done(function(composedTx) { cb(null, composedTx) }, function(error) { cb(error) })
 }

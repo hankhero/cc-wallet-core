@@ -25,13 +25,13 @@ describe('address.Address', function() {
     amStorage = new address.AddressStorage()
     am = new address.AddressManager(amStorage, networks.bitcoin)
 
-    uncolored = adManager.createAssetDefinition({
+    uncolored = adManager.resolveAssetDefinition({
       monikers: ['bitcoin'],
       colorDescs: [''],
       unit: 100000000
     })
     uncoloredAddress = am.getNewAddress(uncolored, seedHex)
-    epobc = adManager.createAssetDefinition({
+    epobc = adManager.resolveAssetDefinition({
       monikers: ['gold'],
       colorDescs: ['epobc:b95323a763fa507110a89ab857af8e949810cf1e67e91104cd64222a04ccd0bb:0:180679'],
       unit: 10000
