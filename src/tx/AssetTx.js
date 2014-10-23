@@ -1,7 +1,7 @@
 var _ = require('lodash')
-var cclib = require('coloredcoinjs-lib')
 
 var OperationalTx = require('./OperationalTx')
+var cclib = require('../cclib')
 var verify = require('../verify')
 
 

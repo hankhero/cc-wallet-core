@@ -1,6 +1,6 @@
 var expect = require('chai').expect
 
-var cclib = require('coloredcoinjs-lib')
+var cclib = require('../src/cclib')
 var networks = cclib.bitcoin.networks
 
 var ccWallet = require('../src')

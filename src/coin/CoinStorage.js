@@ -1,8 +1,8 @@
 var inherits = require('util').inherits
 
 var _ = require('lodash')
-var bitcoin = require('coloredcoinjs-lib')
 
+var bitcoin = require('../cclib').bitcoin
 var SyncStorage = require('../SyncStorage')
 var verify = require('../verify')
 

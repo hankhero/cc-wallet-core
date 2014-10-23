@@ -1,10 +1,11 @@
 var events = require('events')
 var inherits = require('util').inherits
 
-var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var Q = require('q')
 var socket = require('socket.io-client')
+
+var bitcoin = require('./cclib').bitcoin
 
 
 /**

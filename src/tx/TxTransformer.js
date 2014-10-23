@@ -1,8 +1,8 @@
 var _ = require('lodash')
 var Q = require('q')
-var cclib = require('coloredcoinjs-lib')
-var bitcoin = cclib.bitcoin
 
+var cclib = require('../cclib')
+var bitcoin = cclib.bitcoin
 var AssetTx = require('./AssetTx')
 var OperationalTx = require('./OperationalTx')
 var ComposedTx = cclib.ComposedTx

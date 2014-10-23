@@ -1,8 +1,8 @@
-var bitcoin = require('coloredcoinjs-lib').bitcoin
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
 
+var bitcoin = require('../cclib').bitcoin
 var verify = require('../verify')
 
 

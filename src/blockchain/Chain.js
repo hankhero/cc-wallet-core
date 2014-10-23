@@ -1,6 +1,6 @@
 var inherits = require('util').inherits
 
-var bitcoin = require('coloredcoinjs-lib').bitcoin
+var bitcoin = require('../cclib').bitcoin
 var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')

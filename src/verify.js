@@ -1,6 +1,6 @@
 var _ = require('lodash')
 
-var cclib = require('coloredcoinjs-lib')
+var cclib = require('./cclib')
 var bitcoin = cclib.bitcoin
 var verify = cclib.verify
 var createInstanceCheck = verify.createInstanceCheck

@@ -1,7 +1,7 @@
-var bitcoin = require('coloredcoinjs-lib').bitcoin
 var base58 = require('bs58')
 var bufferEqual = require('buffer-equal')
 
+var bitcoin = require('../cclib').bitcoin
 var verify = require('../verify')
 
 

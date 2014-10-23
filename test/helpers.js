@@ -1,6 +1,6 @@
 var expect = require('chai').expect
 
-var bitcoin = require('coloredcoinjs-lib').bitcoin
+var bitcoin = require('../src/cclib').bitcoin
 
 
 /**

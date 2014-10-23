@@ -1,8 +1,8 @@
 var expect = require('chai').expect
 
 var _ = require('lodash')
-var cclib = require('coloredcoinjs-lib')
 
+var cclib = require('../src/cclib')
 var AssetDefinition = require('../src/asset').AssetDefinition
 var coin = require('../src/coin')
 var Wallet = require('../src/index').Wallet

@@ -1,8 +1,8 @@
 var util = require('util')
 
 var Q = require('q')
-var cclib = require('coloredcoinjs-lib')
 
+var cclib = require('../cclib')
 var verify = require('../verify')
 
 

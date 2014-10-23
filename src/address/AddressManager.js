@@ -1,8 +1,9 @@
-var bitcoin = require('coloredcoinjs-lib').bitcoin
+var _ = require('lodash')
+
+var cclib = require('../cclib')
+var bitcoin = cclib.bitcoin
 var ECPubKey = bitcoin.ECPubKey
 var HDNode = bitcoin.HDNode
-var cclib = require('coloredcoinjs-lib')
-var _ = require('lodash')
 
 var Address = require('./Address')
 var AssetDefinition = require('../asset').AssetDefinition
