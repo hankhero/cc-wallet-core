@@ -1,3 +1,5 @@
 module.exports = {
-  HistoryManager: require('./HistoryManager')
+  HistoryEntry: require('./HistoryEntry'),
+  HistoryManager: require('./HistoryManager'),
+  HistoryTarget: require('./HistoryTarget')
 }

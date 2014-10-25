@@ -9,7 +9,7 @@ var verify = require('../verify')
  * @param {number} data.blockHeight
  * @param {number} data.timestamp
  * @param {AssetValue[]} data.values
- * @param {AssetTarget[]} data.targets
+ * @param {HistoryTarget[]} data.targets
  * @param {number} data.entryType
  */
 function HistoryEntry(data) {
@@ -20,7 +20,7 @@ function HistoryEntry(data) {
   verify.array(data.values)
   data.values.forEach(verify.AssetValue)
   verify.array(data.targets)
-  data.targets.forEach(verify.AssetTarget)
+  data.targets.forEach(verify.HistoryTarget)
   verify.number(data.entryType)
 
   this.txId = data.tx.getId()

@@ -4,7 +4,7 @@ var Q = require('q')
 var cclib = require('../cclib')
 var bitcoin = cclib.bitcoin
 var AssetValue = require('../asset').AssetValue
-var AssetTarget = require('../asset').AssetTarget
+var HistoryTarget = require('./HistoryTarget')
 var Coin = require('../coin').Coin
 var toposort = require('../tx').toposort
 var HistoryEntry = require('./HistoryEntry')
@@ -57,6 +57,7 @@ HistoryManager.prototype.getEntries = function(cb) {
       })
       .sortBy(function(entry) {
         var value = entry[1].blockHeight + entry[1].timestamp/10000000000
+        // -1 or Infinity ?
         return isNaN(value) ? -1 : value
       })
       .value()
@@ -95,7 +96,7 @@ HistoryManager.prototype.getEntries = function(cb) {
             colorValues[cid] = cv
           else
             colorValues[cid] = colorValues[cid].plus(cv)
-          myColorTargets.push(new cclib.ColorTarget(coin.toRawCoin().script, cv))
+          myColorTargets.push(new cclib.ColorTarget(coin.script, cv))
         })
       })
 
@@ -105,7 +106,7 @@ HistoryManager.prototype.getEntries = function(cb) {
           if (!_.isUndefined(coins[tx.getId()+index]))
             return
 
-          var address = bitcoin.Address.fromOutputScript(output.script, self.wallet.getNetwork()).toBase58Check()
+          var address = bitcoin.getAddressesFromOutputScript(output.script, self.wallet.getNetwork())[0]
           var coin = new Coin(self.wallet.getCoinManager(), {
             txId: tx.getId(),
             outIndex: index,
@@ -132,26 +133,26 @@ HistoryManager.prototype.getEntries = function(cb) {
           assetValues[assetdef.getId()] = new AssetValue(assetdef, cv.getValue())
         })
 
-        var assetTargets = colorTargets.map(function(ct) {
+        var historyTargets = colorTargets.map(function(ct) {
           var desc = ct.getColorDefinition().getDesc()
           var assetdef = self.wallet.getAssetDefinitionManager().getByDesc(desc)
           if (assetdef === null)
             throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
           var assetValue = new AssetValue(assetdef, ct.getValue())
-          return new AssetTarget(ct.getScript(), assetValue)
+          return new HistoryTarget(assetValue, ct.getScript(), self.wallet.getNetwork())
         })
 
         var entryType = HistoryEntry.entryTypes.Send
         if (ins.length === 0) {
           entryType = HistoryEntry.entryTypes.Receive
           // replace targets
-          assetTargets = myColorTargets.map(function(ct) {
+          historyTargets = myColorTargets.map(function(ct) {
             var desc = ct.getColorDefinition().getDesc()
             var assetdef = self.wallet.getAssetDefinitionManager().getByDesc(desc)
             if (assetdef === null)
               throw new Error('asset for ColorValue ' + ct.getColorValue() + ' not found')
             var assetValue = new AssetValue(assetdef, ct.getValue())
-            return new AssetTarget(ct.getScript(), assetValue)
+            return new HistoryTarget(assetValue, ct.getScript(), self.wallet.getNetwork())
           })
         }
         if (ins.length === tx.ins.length && outs.length === tx.outs.length)
@@ -162,7 +163,7 @@ HistoryManager.prototype.getEntries = function(cb) {
           blockHeight: txEntries[tx.getId()].blockHeight,
           timestamp: txEntries[tx.getId()].timestamp,
           values: _.values(assetValues),
-          targets: assetTargets,
+          targets: historyTargets,
           entryType: entryType
         }))
       })

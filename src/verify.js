@@ -52,6 +52,10 @@ var functions = {
   CoinQuery: createInstanceCheck(function() { return require('./coin').CoinQuery }),
   CoinStorage: createInstanceCheck(function() { return require('./coin').CoinStorage }),
 
+  HistoryEntry: createInstanceCheck(function() { return require('./history').HistoryEntry }),
+  HistoryManager: createInstanceCheck(function() { return require('./history').HistoryManager }),
+  HistoryTarget: createInstanceCheck(function() { return require('./history').HistoryTarget }),
+
   AssetTx: createInstanceCheck(function() { return require('./tx').AssetTx }),
   BaseTxDb: createInstanceCheck(function() { return require('./tx').BaseTxDb }),
   RawTx: createInstanceCheck(function() { return require('./tx').RawTx }),
