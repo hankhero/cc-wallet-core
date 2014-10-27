@@ -162,9 +162,6 @@ OperationalTx.prototype.selectCoins = function(colorValue, feeEstimator, cb) {
 OperationalTx.prototype.getChangeAddress = function(colordef) {
   verify.ColorDefinition(colordef)
 
-  if (!this.isMonoColor())
-    throw new Error('multi-color not supported')
-
   return this.wallet.getSomeAddress(colordef)
 }
 
