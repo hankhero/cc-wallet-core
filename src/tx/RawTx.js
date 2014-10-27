@@ -22,7 +22,7 @@ RawTx.fromComposedTx = function(composedTx) {
   var rawTx = new RawTx()
 
   composedTx.getTxIns().forEach(function(txIn) {
-    rawTx.txb.addInput(txIn.txId, txIn.outIndex)
+    rawTx.txb.addInput(txIn.txId, txIn.outIndex, txIn.sequence)
   })
 
   composedTx.getTxOuts().forEach(function(txOut) {
