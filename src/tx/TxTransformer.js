@@ -34,6 +34,8 @@ function classifyTx(tx) {
     var isSigned = tx.ins.every(function(input) { return input.script !== bitcoin.Script.EMPTY })
     if (isSigned)
       return 'signed'
+    else
+      return 'partially-signed'
   }
 
   return null
@@ -170,13 +172,14 @@ function transformRawTx(rawTx, targetKind, opts, cb) {
   verify.function(cb)
 
   Q.fcall(function() {
-    if (['signed'].indexOf(targetKind) === -1)
+    if (['signed', 'partially-signed'].indexOf(targetKind) === -1)
       throw new Error('do not know how to transform rawTx')
 
     return Q.ninvoke(rawTx, 'sign', opts.wallet, opts.seedHex)
 
   }).then(function() {
-    return rawTx.toTransaction()
+    var allowIncomplete = (targetKind == 'partially-signed')
+    return rawTx.toTransaction(allowIncomplete)
 
   }).then(function(signedTx) {
     return Q.nfcall(transformTx, signedTx, targetKind, opts)
@@ -194,7 +197,7 @@ function transformRawTx(rawTx, targetKind, opts, cb) {
  * Transform a transaction tx into another type of transaction defined by targetKind.
  *
  * AssetTx  -> OperationalTx -> ComposedTx -> RawTx -> Transaction
- * "simple" -> "operational" -> "composed" -> "raw" -> "signed"
+ * "simple" -> "operational" -> "composed" -> "raw" -> ("signed" or "partially-signed")
  *
  * @param {(AssetTx|OperationalTx|ComposedTx)} tx
  * @param {string} targetKind
@@ -219,6 +222,8 @@ function transformTx(tx, targetKind, opts, cb) {
   Q.fcall(function() {
     var currentKind = classifyTx(tx)
     if (currentKind === targetKind)
+      return tx
+    if (currentKind === 'signed' && targetKind === 'partially-signed')
       return tx
 
     if (currentKind === 'asset')
