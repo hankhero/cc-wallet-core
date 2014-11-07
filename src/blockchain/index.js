@@ -1,5 +1,5 @@
 module.exports = {
   BlockchainBase: require('./BlockchainBase'),
-  BlockrIo: require('./BlockrIo'),
+  //BlockrIo: require('./BlockrIo'),
   Chain: require('./Chain')
 }
