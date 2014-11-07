@@ -73,6 +73,7 @@ function blockchainImplementationTest(opt) {
   
     describe('getTxBlockHash', function() {
       it('return null for unconfirmed tx', function(done) {
+        this.timeout(60 * 1000)
         bs = new clazz({ testnet: true })
         helpers.sendCoins(bs, function(txId) {
           // timeout for transaction propagation
