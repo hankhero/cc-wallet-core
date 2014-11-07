@@ -25,7 +25,8 @@ function blockchainImplementationTest(opt) {
       it('timeout', function(done) {
         bs = new clazz({ requestTimeout: 10 })
         bs.getBlockCount(function(error, response) {
-          expect(error).to.be.instanceof(Error)
+          if (! describe.replayMode || describe.replayMode === 'record')
+            expect(error).to.be.instanceof(Error)
           expect(response).to.be.undefined
           done()
         })

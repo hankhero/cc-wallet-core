@@ -1,12 +1,43 @@
 var expect = require('chai').expect
 
 var _ = require('lodash')
+var Q = require('q')
 
 var cclib = require('../src/cclib')
 var AssetDefinition = require('../src/asset').AssetDefinition
 var coin = require('../src/coin')
 var Wallet = require('../src/index').Wallet
 
+
+//var replay = require('replay')
+
+// replay.mode = 'record'
+//replay.mode = 'cheat'
+
+//describe.replayMode = replay.mode
+
+/* Replay modes:
+
+bloody -- All requests go out, none get replayed. Use this if you want
+to remember what life was before you started using node-replay. Also,
+to test your code against changes to 3rd party API, because these do
+happen. Too often.
+
+cheat -- Replays recorded responses, and allow HTTP outbound
+requests. This is mighty convenient when you're writing new tests or
+changing code to make new, un-recorded HTTP requests, but you haven't
+quite settled on which requets to make, so you don't want any
+responses recorded quite yet.
+
+record -- Replays recorded responses, or captures responses for future
+replay. Use this whenever you're writing new tests or code that makes
+new HTTP requests.
+
+replay -- Replays recorded responses, does not allow outbound
+requests. This is the default mode. That's another way of saying,
+"you'll be running in this mode most of the time".
+
+*/
 
 describe('Wallet', function() {
   var wallet
@@ -150,43 +181,52 @@ describe('Wallet', function() {
   })
 
   describe('balance methods', function() {
-    before(function(done) {
-      this.timeout(3 * 60 * 1000)
-      setup()
 
-      wallet.initialize(seed)
-      wallet.addAssetDefinition(seed, goldAsset)
-      wallet.fullScanAllAddresses(function(error) {
-        if (error) throw error
-        expect(error).to.be.null
-        done()
-      })
-    })
+    before(setup)
 
     after(cleanup)
 
-    var fixtures = [
-      { method: 'getAvailableBalance',   moniker: 'bitcoin', balance: 63326039 },
-      { method: 'getAvailableBalance',   moniker: 'gold',    balance: 2000 },
-      { method: 'getTotalBalance',       moniker: 'bitcoin', balance: 63326039 },
-      { method: 'getTotalBalance',       moniker: 'gold',    balance: 2000 },
-      { method: 'getUnconfirmedBalance', moniker: 'bitcoin', balance: 0 },
-      { method: 'getUnconfirmedBalance', moniker: 'gold',    balance: 0 },
-    ]
+    it('balance methods should give correct amounts', function (done) {
+      // Separate it test would be nice, but it was impossible to get
+      // timeouts to work with before, beforeEach and it in combination.
+      this.timeout(6 * 60 * 1000)
+      var self = this
 
-    fixtures.forEach(function(fixture) {
-      it(fixture.method + ' for ' + fixture.moniker, function(done) {
-        var assetdef = wallet.getAssetDefinitionByMoniker(fixture.moniker)
-        wallet[fixture.method](assetdef, function(error, balance) {
-          expect(error).to.be.null
-          expect(balance).to.equal(fixture.balance)
-          done()
-        })
-      })
+      wallet.initialize(seed)
+      wallet.addAssetDefinition(seed, goldAsset)
+
+      wallet.fullScanAllAddresses(function(error) {
+        if (error) throw error
+        expect(error).to.be.null
+
+        var fixtures = [
+          { method: 'getAvailableBalance',   moniker: 'bitcoin', balance: 63326039 },
+          { method: 'getAvailableBalance',   moniker: 'gold',    balance: 2000 },
+          { method: 'getTotalBalance',       moniker: 'bitcoin', balance: 63326039 },
+          { method: 'getTotalBalance',       moniker: 'gold',    balance: 2000 },
+          { method: 'getUnconfirmedBalance', moniker: 'bitcoin', balance: 0 },
+          { method: 'getUnconfirmedBalance', moniker: 'gold',    balance: 0 },
+        ]
+        console.log("Hello", self.timeout())
+
+        var promises = _.map(fixtures, (function(fixture) {
+          //it(fixture.method + ' for ' + fixture.moniker, function(done) {
+          var assetdef = wallet.getAssetDefinitionByMoniker(fixture.moniker)
+          var deferred = Q.defer()
+          wallet[fixture.method](assetdef, function(error, balance) {
+            expect(error).to.be.null
+            expect(balance).to.equal(fixture.balance)
+            deferred.resolve()
+          })
+          return deferred.promise;
+        }))
+
+        Q.allSettled(promises).then(function () { done() });
+      });
     })
   })
 
-  xdescribe('send, history, issue', function() {
+  xdescribe('send-history-issue', function() {
     it('sendCoins', function(done) {
       this.timeout(120000)
 

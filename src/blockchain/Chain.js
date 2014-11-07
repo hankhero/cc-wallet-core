@@ -28,7 +28,7 @@ function Chain(opts) {
   opts = _.extend({
     testnet: false,
     apiKeyId: 'DEMO-4a5e1e4',
-    requestTimeout: 5*1000,
+    requestTimeout: 8*1000,
     maxCacheSize: 500,
     maxCacheAge: 10*1000
   }, opts)
