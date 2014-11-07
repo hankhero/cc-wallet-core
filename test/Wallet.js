@@ -151,7 +151,6 @@ describe('Wallet', function() {
 
   describe('balance methods', function() {
     before(function(done) {
-      this.timeout(3 * 60 * 1000)
       setup()
 
       wallet.initialize(seed)
@@ -161,6 +160,9 @@ describe('Wallet', function() {
         expect(error).to.be.null
         done()
       })
+    })
+    beforeEach(function () {
+      this.timeout(3 * 60 * 1000)
     })
 
     after(cleanup)
