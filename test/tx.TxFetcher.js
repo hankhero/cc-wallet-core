@@ -26,6 +26,7 @@ describe('tx.TxFetcher', function() {
   })
 
   it('fullScanAddresses', function(done) {
+    this.timeout(60 * 1000)
     txFetcher.fullScanAddresses(addresses, function(error) {
       expect(error).to.be.null
       done()
