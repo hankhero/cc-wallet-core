@@ -1,7 +1,6 @@
 var expect = require('chai').expect
 
 var _ = require('lodash')
-var Q = require('q')
 
 var cclib = require('../src/cclib')
 var AssetDefinition = require('../src/asset').AssetDefinition
@@ -179,51 +178,6 @@ describe('Wallet', function() {
       })
     })
   })
-
-  // describe('balance methods', function() {
-
-  //   before(setup)
-
-  //   after(cleanup)
-
-  //   it('balance methods should give correct amounts', function (done) {
-  //     // Separate it test would be nice, but it was impossible to get
-  //     // timeouts to work with before, beforeEach and it in combination.
-  //     this.timeout(3 * 60 * 1000)
-  //     var self = this
-
-  //     wallet.initialize(seed)
-  //     wallet.addAssetDefinition(seed, goldAsset)
-
-  //     wallet.fullScanAllAddresses(function(error) {
-  //       if (error) throw error
-  //       expect(error).to.be.null
-
-  //       var fixtures = [
-  //         { method: 'getAvailableBalance',   moniker: 'bitcoin', balance: 63326039 },
-  //         { method: 'getAvailableBalance',   moniker: 'gold',    balance: 2000 },
-  //         { method: 'getTotalBalance',       moniker: 'bitcoin', balance: 63326039 },
-  //         { method: 'getTotalBalance',       moniker: 'gold',    balance: 2000 },
-  //         { method: 'getUnconfirmedBalance', moniker: 'bitcoin', balance: 0 },
-  //         { method: 'getUnconfirmedBalance', moniker: 'gold',    balance: 0 },
-  //       ]
-
-  //       var promises = _.map(fixtures, (function(fixture) {
-  //         //it(fixture.method + ' for ' + fixture.moniker, function(done) {
-  //         var assetdef = wallet.getAssetDefinitionByMoniker(fixture.moniker)
-  //         var deferred = Q.defer()
-  //         wallet[fixture.method](assetdef, function(error, balance) {
-  //           expect(error).to.be.null
-  //           expect(balance).to.equal(fixture.balance)
-  //           deferred.resolve()
-  //         })
-  //         return deferred.promise;
-  //       }))
-
-  //       Q.allSettled(promises).then(function () { done() });
-  //     });
-  //   })
-  // })
 
   describe('balance methods', function() {
 

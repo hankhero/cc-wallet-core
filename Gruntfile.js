@@ -58,7 +58,7 @@ module.exports = function(grunt) {
           coverage: true,
           mask: '*.js',
           reporter: 'spec',
-          timeout: 12000
+          timeout: 120000
         }
       }
     },
