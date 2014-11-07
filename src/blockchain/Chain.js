@@ -19,7 +19,7 @@ var BlockchainBase = require('./BlockchainBase')
  * @param {Object} opts
  * @param {boolean} opts.testnet
  * @param {string} [opts.apiKeyId=DEMO-4a5e1e4]
- * @param {number} [opts.requestTimeout=5*1000]
+ * @param {number} [opts.requestTimeout=10*1000]
  * @param {number} [opts.maxCacheSize=500]
  * @param {number} [opts.maxCacheAge=10*1000] Cache live in ms
  * @param {BaseTxDb} [opts.txDb] Get transactions from TxDb, optional
@@ -28,7 +28,7 @@ function Chain(opts) {
   opts = _.extend({
     testnet: false,
     apiKeyId: 'DEMO-4a5e1e4',
-    requestTimeout: 8*1000,
+    requestTimeout: 12*1000,
     maxCacheSize: 500,
     maxCacheAge: 10*1000
   }, opts)
