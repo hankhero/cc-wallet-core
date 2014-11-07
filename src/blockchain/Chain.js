@@ -92,6 +92,7 @@ Chain.prototype.request = function(path, data, cb) {
 
   self.requestPathMap[path] = requestPathCallbacks;
 
+  /** handle answers */
   var doCallbacks = function(param1, param2) {
     var requestPathCallbacks = self.requestPathMap[path]
     delete self.requestPathMap[path]
@@ -101,8 +102,16 @@ Chain.prototype.request = function(path, data, cb) {
     })
   }
 
-  /** make request */
+  var requestOk = function(data) {
+    self.cache.set(path, data)
+    doCallbacks(null, data)
+  }
 
+  var requestError = function(error) {
+    doCallbacks(error)
+  }
+
+  /** make request */
   var requestOpts = {
     method: data === null ? 'GET' : 'POST',
     uri: self.baseURL + path + '?api-key-id=' + self.apiKeyId,
@@ -119,10 +128,7 @@ Chain.prototype.request = function(path, data, cb) {
 
     return body
 
-  }).done(function(data) {
-    self.cache.set(path, data)
-    doCallbacks(null, data)
-  }, function(error) { doCallbacks(error) })
+  }).done(requestOk, requestError)
 }
 
 /**
