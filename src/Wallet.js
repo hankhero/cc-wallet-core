@@ -24,12 +24,12 @@ var verify = require('./verify')
  *
  * @param {Object} opts
  * @param {boolean} [opts.testnet=false]
- * @param {string} [opts.blockchain='BlockrIo'] Now available only BlockrIo
+ * @param {string} [opts.blockchain='Chain'] Now available BlockrIo, Chain
  */
 function Wallet(opts) {
   opts = _.extend({
     testnet: false,
-    blockchain: 'BlockrIo'
+    blockchain: 'Chain'
   }, opts)
 
   verify.boolean(opts.testnet)
