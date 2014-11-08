@@ -98,7 +98,9 @@ Chain.prototype.request = function(path, data, cb) {
     delete self.requestPathMap[path]
 
     _.each(requestPathCallbacks, function (cb) {
-      cb(param1, param2)
+      process.nextTick(function () {
+        cb(param1, param2)
+      })
     })
   }
 
