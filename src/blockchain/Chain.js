@@ -5,6 +5,7 @@ var _ = require('lodash')
 var LRU = require('lru-cache')
 var Q = require('q')
 var request = require('request')
+//request.debug=true
 
 var BlockchainBase = require('./BlockchainBase')
 
@@ -18,7 +19,7 @@ var BlockchainBase = require('./BlockchainBase')
  * @param {Object} opts
  * @param {boolean} opts.testnet
  * @param {string} [opts.apiKeyId=DEMO-4a5e1e4]
- * @param {number} [opts.requestTimeout=5*1000]
+ * @param {number} [opts.requestTimeout=10*1000]
  * @param {number} [opts.maxCacheSize=500]
  * @param {number} [opts.maxCacheAge=10*1000] Cache live in ms
  * @param {BaseTxDb} [opts.txDb] Get transactions from TxDb, optional
@@ -27,7 +28,7 @@ function Chain(opts) {
   opts = _.extend({
     testnet: false,
     apiKeyId: 'DEMO-4a5e1e4',
-    requestTimeout: 5*1000,
+    requestTimeout: 12*1000,
     maxCacheSize: 500,
     maxCacheAge: 10*1000
   }, opts)
@@ -45,7 +46,8 @@ function Chain(opts) {
   })
 
   this.requestTimeout = opts.requestTimeout + 25
-  this.requestPathCache = LRU({ maxAge: this.requestTimeout })
+
+  this.requestPathMap = {}
 
   if (!_.isUndefined(opts.txDb))
     this.txDb = opts.txDb
@@ -82,28 +84,51 @@ Chain.prototype.request = function(path, data, cb) {
   }
 
   /** check already requested */
-  if (!_.isUndefined(self.requestPathCache.get(path))) {
-    setTimeout(function() { self.request(path, data, cb) }, 25)
-    return
+  var requestPathCallbacks = self.requestPathMap[path]
+  if (_.isUndefined(requestPathCallbacks)) {
+    requestPathCallbacks = []
+  }
+  requestPathCallbacks.push(cb)
+
+  self.requestPathMap[path] = requestPathCallbacks;
+
+  /** handle answers */
+  var doCallbacks = function(param1, param2) {
+    var requestPathCallbacks = self.requestPathMap[path]
+    delete self.requestPathMap[path]
+
+    _.each(requestPathCallbacks, function (cb) {
+      cb(param1, param2)
+    })
+  }
+
+  var requestOk = function(data) {
+    self.cache.set(path, data)
+    doCallbacks(null, data)
+  }
+
+  var requestError = function(error) {
+    doCallbacks(error)
   }
 
   /** make request */
-  self.requestPathCache.set(path, true)
   var requestOpts = {
     method: data === null ? 'GET' : 'POST',
     uri: self.baseURL + path + '?api-key-id=' + self.apiKeyId,
     body: JSON.stringify(data),
     timeout: self.requestTimeout,
+    zip: true,
     json: true
   }
 
   Q.nfcall(request, requestOpts).spread(function(response, body) {
+
     if (response.statusCode !== 200)
       throw new Error('Request error: ' + response.statusMessage)
 
     return body
 
-  }).done(function(data) { cb(null, data) }, function(error) { cb(error) })
+  }).done(requestOk, requestError)
 }
 
 /**
@@ -265,7 +290,7 @@ Chain.prototype.getUTXO = function(address, cb) {
       }
     })
 
-  }).done(function(coins) { cb(null, coins) }, function(error) { cb(error) })  
+  }).done(function(coins) { cb(null, coins) }, function(error) { cb(error) })
 }
 
 /**
@@ -293,7 +318,7 @@ Chain.prototype.getHistory = function(address, cb) {
       return { txId: record.hash, confirmations: record.confirmations }
     })
 
-  }).done(function(records) { cb(null, records) }, function(error) { cb(error) }) 
+  }).done(function(records) { cb(null, records) }, function(error) { cb(error) })
 }
 
 

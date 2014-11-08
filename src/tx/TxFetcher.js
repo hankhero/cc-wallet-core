@@ -98,7 +98,8 @@ TxFetcher.prototype.scanAddressesUnspent = function(addresses, cb) {
 
     return Q.all(promises)
 
-  }).then(self._addRecords.bind(self)).done(function() { cb(null) }, function(error) { cb(error) })
+  }).then(self._addRecords.bind(self))
+    .done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 /**
@@ -133,7 +134,8 @@ TxFetcher.prototype.fullScanAddresses = function(addresses, cb) {
 
     return Q.all(promises)
 
-  }).then(self._addRecords.bind(self)).done(function() { cb(null) }, function(error) { cb(error) })
+  }).then(self._addRecords.bind(self))
+    .done(function() { cb(null) }, function(error) { cb(error) })
 }
 
 
